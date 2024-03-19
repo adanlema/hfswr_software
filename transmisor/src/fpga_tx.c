@@ -27,7 +27,7 @@ typedef struct fpga_registers_s * fpga_registers_t;
 /*==================[internal data declaration]==============================*/
 static struct fpga_registers_s fpga_regs = {0};
 /*==================[internal functions declaration]=========================*/
-static int fpga_init(fpga_registers_t * self);
+static int  fpga_init(fpga_registers_t * self);
 static void fpga_exit();
 static void fpga_write(fpga_registers_t self, uint32_t estado, uint32_t valor);
 /*==================[internal data definition]===============================*/
@@ -35,7 +35,7 @@ static void fpga_write(fpga_registers_t self, uint32_t estado, uint32_t valor);
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-fpga_registers_t fpga_Create(void){
+fpga_registers_t fpga_Create(void) {
     return &fpga_regs;
 }
 
@@ -46,7 +46,8 @@ static int fpga_init(fpga_registers_t * self) {
         return -1;
     }
 
-    *self = (fpga_registers_t)mmap(NULL, FPGA_REG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, FPGA_BASE_ADDRESS);
+    *self = (fpga_registers_t)mmap(NULL, FPGA_REG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+                                   FPGA_BASE_ADDRESS);
     if (*self == MAP_FAILED) {
         perror("Error mapping FPGA registers");
         close(fd);
@@ -88,12 +89,13 @@ static void fpga_exit() {
 
 int main() {
     fpga_registers_t fpga = fpga_Create();
-    uint32_t freq_rp, freq_s, codigo, ancho_b;
-    char respuesta;
+    uint32_t         freq_rp, freq_s, codigo, ancho_b;
+    char             respuesta;
     if (fpga_init(&fpga) == 0) {
         printf("Bienvenido al programa de modificación de señal en la FPGA.\n");
-        printf("Frecuencia = %u[Hz]\nCodigo = %u\nPRF = %u[Hz]\nBW = %u[Hz]\n", fpga->freq, fpga->code, fpga->prf, fpga->bw);
-        
+        printf("Frecuencia = %u[Hz]\nCodigo = %u\nPRF = %u[Hz]\nBW = %u[Hz]\n", fpga->freq,
+               fpga->code, fpga->prf, fpga->bw);
+
         // ======================= FRECUENCIA ============================
         printf("¿Deseas modificar la frecuencia? (S/N): ");
         scanf(" %c", &respuesta);
