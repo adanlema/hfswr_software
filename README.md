@@ -20,9 +20,12 @@ El proyecto implica la implementación de un Radar de Onda Superficial utilizand
     * redpitaya > cat ARCHIVO.bit > /dev/xdevcfg
 
 ## Subir el codigo del PS a la FPGA
-El proceso es similar al de cargar el bitstream, excepto que en este caso debemos transferir la carpeta "transmisor" a la placa FPGA. Una vez que la carpeta se haya transferido con éxito, es necesario ingresar a ella y ejecutar el comando **make** para compilar y ejecutar el código.
+El proceso es similar al de cargar el bitstream, excepto que en este caso debemos transferir la carpeta "transmisor" a la placa FPGA. Para transferir la carpeta se debe usar el comando:
+**scp -r CARPETA root@rp-xxxxxx.local:/root**
+ Una vez que la carpeta se haya transferido con éxito, es necesario ingresar a ella y ejecutar el comando **make** para compilar, luego para ejecutar el código usamos el comando **make run**.
 
 | Comando | Descripcion |
 | --- | --- |
 | make | Compila el codigo |
 | make clean | Borra la carpeta *build* |
+| make run | Ejecutar el programa |

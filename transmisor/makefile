@@ -26,4 +26,4 @@ clean: $(OUT_DIR)
 	rm -r $(OUT_DIR)
 
 run: $(BIN_DIR)
-    $(BIN_DIR)/app.elf
+	$(BIN_DIR)/app.elf
