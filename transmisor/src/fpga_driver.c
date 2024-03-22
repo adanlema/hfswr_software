@@ -46,22 +46,22 @@ void fpga_finalize() {
     }
 }
 
-void fpga_write_registers(uint32_t prf, uint32_t bw, uint32_t freq) {
+void fpga_write_registers(uint32_t code, uint32_t prf, uint32_t bw, uint32_t freq) {
     if (fpga_addr == NULL) {
         printf("FPGA driver not initialized.\n");
         return;
     }
 
     uint32_t prt_value   = ceil(122880000 / prf);
-    uint32_t t_value     = ceil((16 * 122880000) / bw);
+    uint32_t t_value     = ceil((13 * 122880000) / bw);
     uint32_t phase_value = ceil((freq * 1e9) / 28610229);
 
-    *(fpga_addr + FPGA_OFFSET_START) = 0;
-    *(fpga_addr + FPGA_OFFSET_CODE)  = CODE_BARKER11;
-    *(fpga_addr + FPGA_OFFSET_PRT)   = prt_value;
-    *(fpga_addr + FPGA_OFFSET_T)     = t_value;
-    *(fpga_addr + FPGA_OFFSET_PHASE) = phase_value;
-    *(fpga_addr + FPGA_OFFSET_START) = 1;
+    *(fpga_addr + FPGA_OFFSET_PHASE_VALID) = 0;
+    *(fpga_addr + FPGA_OFFSET_CODE)        = code;
+    *(fpga_addr + FPGA_OFFSET_PRT)         = prt_value;
+    *(fpga_addr + FPGA_OFFSET_T)           = t_value;
+    *(fpga_addr + FPGA_OFFSET_PHASE)       = phase_value;
+    *(fpga_addr + FPGA_OFFSET_PHASE_VALID) = 1;
 }
 
 /** @ doxygen end group definition */
