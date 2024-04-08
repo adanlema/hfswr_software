@@ -31,7 +31,7 @@ int main() {
     uint32_t FREQ = 10000000;
 
     /* Escritura y liberacion del bloque */
-    fpga_write_registers(CODE_BARKER11, PRF, AB, FREQ);
+    fpga_write_registers(FREQ, AB, PRF, BARKER11_CODE, BARKER11_NUM);
     fpga_finalize();
 
     printf("Parámetros actualizados.\n");

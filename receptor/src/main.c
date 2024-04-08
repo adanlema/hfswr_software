@@ -1,27 +1,29 @@
 /* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
 
 /*==================[inclusions]=============================================*/
-#include "fpga_driver.h"
 #include <stdio.h>
 #include <stdint.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/mman.h>
-#include <math.h>
+#include <errno.h>
 /*==================[macros and definitions]=================================*/
+#define FPGA_BASE_ADDRESS 0x43C00000
+#define FPGA_REG          7
 
 /*==================[internal data declaration]==============================*/
 static volatile uint32_t * fpga_addr = NULL;
 /*==================[internal functions declaration]=========================*/
-
+static int  fpga_initialize();
+static void fpga_finalize();
+static void save_memory(const char * filename);
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-
-/*==================[external functions definition]==========================*/
-int fpga_initialize() {
+static int fpga_initialize() {
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
         perror("Error opening /dev/mem");
@@ -38,35 +40,39 @@ int fpga_initialize() {
 
     return 0;
 }
-
-void fpga_finalize() {
+static void fpga_finalize() {
     if (fpga_addr != NULL) {
-        munmap((void *)fpga_addr, FPGA_REG * sizeof(uint32_t));
+        munmap(fpga_addr, FPGA_REG * sizeof(uint32_t));
         fpga_addr = NULL;
     }
 }
-
-void fpga_write_registers(uint32_t freq, uint32_t bw, uint32_t prf, uint32_t code,
-                          uint32_t num_code) {
-    if (fpga_addr == NULL) {
-        printf("FPGA driver not initialized.\n");
+static void save_memory(const char * filename) {
+    FILE * fp = fopen(filename, "w");
+    if (fp == NULL) {
+        perror("Error opening file");
         return;
     }
+    fprintf(fp, "FS = 120000\n");
+    for (int i = 0; i < FPGA_REG; ++i) {
+        uint32_t value = *((uint32_t *)fpga_addr + i);
+        fprintf(fp, "0x%08x\n", value);
+    }
 
-    uint32_t prt_value   = ceil(122880000 / prf);
-    uint32_t phase_value = ceil((freq * 1e9) / 28610229);
-    uint32_t tb          = ceil(122880000 / bw);
-    uint32_t t_value     = ceil(num_code * tb);
-
-    *(fpga_addr + FPGA_OFFSET_START) = 0;
-    *(fpga_addr + FPGA_OFFSET_PHASE) = phase_value;
-    *(fpga_addr + FPGA_OFFSET_T)     = t_value;
-    *(fpga_addr + FPGA_OFFSET_PRT)   = prt_value;
-    *(fpga_addr + FPGA_OFFSET_CODE)  = code;
-    *(fpga_addr + FPGA_OFFSET_NUMD)  = num_code;
-    *(fpga_addr + FPGA_OFFSET_TB)    = tb;
+    fclose(fp);
 }
+/*==================[external functions definition]==========================*/
+int main() {
+    if (fpga_initialize() != 0) {
+        fprintf(stderr, "Error al inicializar el bloque de memoria de la FPGA\n");
+        return 1;
+    }
+    printf("Bienvenido al programa de extracion de datos en la FPGA.\n");
+    save_memory("datos_recuperados.txt");
+    fpga_finalize();
+    printf("Datos extraidos correctamente!.\n");
 
+    return 0;
+}
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
