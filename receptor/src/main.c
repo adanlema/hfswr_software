@@ -8,16 +8,30 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <arpa/inet.h>
 /*==================[macros and definitions]=================================*/
-#define FPGA_BASE_ADDRESS 0x43C00000
-#define FPGA_REG          7
-
+#define FPGA_BASE_ADDRESS 0x40000000
+#define FPGA_REG          4096
+#define BUFFER_SIZE       FPGA_REG * sizeof(uint32_t)
+#define FPGA_OFFSET_VALID 0
 /*==================[internal data declaration]==============================*/
+// Variables de Mapeo
 static volatile uint32_t * fpga_addr = NULL;
+// Variables para el Servidor/Cliente
+static int                sock;
+static struct sockaddr_in addr;
+static socklen_t          addr_size;
+char                      buffer[BUFFER_SIZE];
+char *                    ip   = "127.0.0.1";
+int                       port = 5566;
 /*==================[internal functions declaration]=========================*/
+// Funciones de Mapeo
 static int  fpga_initialize();
 static void fpga_finalize();
-static void save_memory(const char * filename);
+// Funciones para el servidor/cliente
+static int  client_initialize();
+static void client_connect();
+static void client_desconnect();
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
@@ -46,31 +60,58 @@ static void fpga_finalize() {
         fpga_addr = NULL;
     }
 }
-static void save_memory(const char * filename) {
-    FILE * fp = fopen(filename, "w");
-    if (fp == NULL) {
-        perror("Error opening file");
-        return;
-    }
-    fprintf(fp, "FS = 120000\n");
-    for (int i = 0; i < FPGA_REG; ++i) {
-        uint32_t value = *((uint32_t *)fpga_addr + i);
-        fprintf(fp, "0x%08x\n", value);
-    }
+static int client_initialize() {
 
-    fclose(fp);
+    // Creacion del socket
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("[-]Socket error");
+        return -1;
+    }
+    printf("[+]TCP server socket created.\n");
+    return 0;
+}
+static void client_connect() {
+    // Inicializa en cero y luego lo carga
+    memset(&addr, '\0', sizeof(addr));
+    addr.sin_family      = AF_INET;
+    addr.sin_port        = port;
+    addr.sin_addr.s_addr = inet_addr(ip);
+
+    // Intenta conectarse al server
+    connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+    printf("Connected to the server.\n");
+}
+static void client_desconnect() {
+    close(sock);
+    printf("Disconnected from the server.\n");
 }
 /*==================[external functions definition]==========================*/
 int main() {
+    // Inicializacion
     if (fpga_initialize() != 0) {
         fprintf(stderr, "Error al inicializar el bloque de memoria de la FPGA\n");
         return 1;
     }
     printf("Bienvenido al programa de extracion de datos en la FPGA.\n");
-    save_memory("datos_recuperados.txt");
-    fpga_finalize();
-    printf("Datos extraidos correctamente!.\n");
+    if (client_initialize() != 0) {
+        printf("Error al inicializar el Socket");
+        return 1;
+    }
+    client_connect();
 
+    // Area de trabajo
+    while (true) {
+        uint32_t value = *(fpga_addr + FPGA_OFFSET_VALID);
+        if (value == 1) {
+            bzero(buffer, BUFFER_SIZE);
+            memcpy(buffer, fpga_addr, FPGA_REG * sizeof(uint32_t));
+            send(sock, buffer, strlen(buffer), 0);
+        }
+    };
+    // Desconexion
+    client_desconnect();
+    fpga_finalize();
     return 0;
 }
 /** @ doxygen end group definition */
