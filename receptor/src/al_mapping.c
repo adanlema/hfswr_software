@@ -4,16 +4,18 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <errno.h>
 #include <arpa/inet.h>
+#include <string.h>
 
-#include "al_client.h"
 #include "al_mapping.h"
-
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-
+static volatile uint32_t * fpga_addr = NULL;
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
@@ -23,35 +25,28 @@
 /*==================[internal functions definition]==========================*/
 
 /*==================[external functions definition]==========================*/
-int main() {
-
-    volatile uint32_t * addr = mapping_initialize();
-    printf("Mapeo de memoria realizo con exito...\n");
-
-    int sock = client_initialize();
-    if (sock < 0) {
-        printf("Error al inicializar el cliente...\n");
-        return -1;
+volatile uint32_t * mapping_initialize() {
+    int fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (fd < 0) {
+        perror("Error opening /dev/mem");
+        exit(EXIT_FAILURE);
     }
 
-    uint32_t * buffer = malloc(FPGA_REG * sizeof(uint32_t));
-    if (buffer == NULL) {
-        perror("Error allocating memory for buffer");
-        return -1;
+    fpga_addr = mmap(NULL, FPGA_REG * sizeof(uint32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+                     FPGA_BASE_ADDRESS);
+    if (fpga_addr == MAP_FAILED) {
+        perror("Error mapping FPGA register");
+        close(fd);
+        exit(EXIT_FAILURE);
     }
 
-    while (1) {
-        uint32_t value = *(addr + FPGA_OFFSET_VALID);
-        if (value == 1) {
-            memset(buffer, 0, FPGA_REG * sizeof(uint32_t));
-            memcpy(buffer, (const void *)addr, FPGA_REG * sizeof(uint32_t));
-            send(sock, buffer, FPGA_REG * sizeof(uint32_t), 0);
-        }
-    };
-    // Desconexion
-    client_disconnect(sock);
-    mapping_finalize(addr);
-    return 0;
+    return fpga_addr;
+}
+void mapping_finalize(volatile uint32_t * addr) {
+    if (addr != NULL) {
+        munmap((void *)addr, FPGA_REG * sizeof(uint32_t));
+        addr = NULL;
+    }
 }
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
