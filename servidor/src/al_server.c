@@ -26,9 +26,14 @@ int main() {
     int                server_sock, client_sock;
     struct sockaddr_in server_addr, client_addr;
     socklen_t          addr_size;
-    char               buffer[BUFFER_SIZE];
     int                n;
 
+    // Creacion del buffer...
+    uint32_t * buffer = malloc(BUFFER_SIZE);
+    if (buffer == NULL) {
+        perror("Error allocating memory for buffer");
+        return -1;
+    }
     // Creacion del Socket
     server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock < 0) {
@@ -49,7 +54,7 @@ int main() {
         perror("[-]Bind error");
         exit(1);
     }
-    printf("[+]Bind to the port number: %d\n", port);
+    printf("[+]Bind to the port number: %d\n", PORT);
 
     listen(server_sock, 5);
     printf("Listening...\n");
@@ -58,9 +63,9 @@ int main() {
     printf("[+]Cliente conectado.\n");
 
     while (1) {
-        bzero(buffer, BUFFER_SIZE);
-        recv(client_sock, buffer, sizeof(buffer), 0);
-        printf("Client: %s\n", buffer);
+        memset(buffer, 0, BUFFER_SIZE);
+        recv(client_sock, buffer, BUFFER_SIZE, 0);
+        printf("Client: %u\n", buffer);
     }
     close(client_sock);
     printf("[+]Cliente desconectado...\n");
