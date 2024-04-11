@@ -8,7 +8,7 @@
 /*==================[macros]=================================================*/
 #define FPGA_BASE_ADDRESS 0x40000000
 #define FPGA_REG          4096
-#define BUFFER_SIZE       FPGA_REG * sizeof(uint32_t)
+#define BUFFER_SIZE       FPGA_REG * sizeof(int32_t)
 #define FPGA_OFFSET_VALID 0
 /*==================[typedef]================================================*/
 

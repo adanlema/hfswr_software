@@ -10,32 +10,30 @@
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-
+static struct sockaddr_in addr;
 /*==================[internal functions declaration]=========================*/
-static int client_create_socket();
-static int client_connect(int sock);
+
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-static int client_create_socket() {
+
+/*==================[external functions definition]==========================*/
+int client_create_socket() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("[-]Socket error:");
         return -1;
     }
     printf("[+]TCP server socket created.\n");
-    return sock;
-}
-static int client_connect(int sock) {
-    struct sockaddr_in addr;
     memset(&addr, '\0', sizeof(addr));
     addr.sin_family      = AF_INET;
     addr.sin_port        = PORT;
     addr.sin_addr.s_addr = inet_addr(IP_ADDRESS);
-
-    // Intenta conectarse al server
+    return sock;
+}
+int client_connect(int sock) {
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
         perror("Error al conectar el cliente con el servidor: ");
         return -1;
@@ -43,20 +41,6 @@ static int client_connect(int sock) {
         printf("Cliente conectado con exito...\n");
         return 0;
     }
-}
-/*==================[external functions definition]==========================*/
-int client_initialize() {
-    int sock = client_create_socket();
-    int value;
-    if (sock > 0) {
-        value = client_connect(sock);
-        if (value != 0) {
-            return -1;
-        }
-    } else {
-        return -1;
-    }
-    return sock;
 }
 
 void client_disconnect(int sock) {

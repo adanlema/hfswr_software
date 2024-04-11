@@ -13,7 +13,8 @@
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-int  client_initialize();
+int  client_create_socket();
+int  client_connect(int sock);
 void client_disconnect(int sock);
 
 /** @ doxygen end group definition */

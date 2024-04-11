@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <arpa/inet.h>
 #include <string.h>
 
 #include "al_mapping.h"

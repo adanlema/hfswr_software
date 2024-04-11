@@ -25,32 +25,35 @@
 /*==================[external functions definition]==========================*/
 int main() {
 
-    volatile uint32_t * addr = mapping_initialize();
+    volatile uint32_t * addr_fpga = mapping_initialize();
     printf("Mapeo de memoria realizo con exito...\n");
 
-    int sock = client_initialize();
+    int sock = client_create_socket();
     if (sock < 0) {
         printf("Error al inicializar el cliente...\n");
         return -1;
     }
 
-    uint32_t * buffer = malloc(FPGA_REG * sizeof(uint32_t));
+    int32_t * buffer = malloc(BUFFER_SIZE);
     if (buffer == NULL) {
         perror("Error allocating memory for buffer");
         return -1;
     }
 
     while (1) {
-        uint32_t value = *(addr + FPGA_OFFSET_VALID);
-        if (value == 1) {
-            memset(buffer, 0, FPGA_REG * sizeof(uint32_t));
-            memcpy(buffer, (const void *)addr, FPGA_REG * sizeof(uint32_t));
-            send(sock, buffer, FPGA_REG * sizeof(uint32_t), 0);
+        if (addr_fpga[FPGA_OFFSET_VALID] == 1) {
+            if (client_connect(sock) == 0) {
+                memset(buffer, 0, BUFFER_SIZE);
+                memcpy(buffer, (const void *)addr_fpga, BUFFER_SIZE);
+                send(sock, buffer, BUFFER_SIZE, 0);
+                printf("\nDatos enviados...\n");
+                addr_fpga[FPGA_OFFSET_VALID] = 0;
+                client_disconnect(sock);
+            }
         }
     };
-    // Desconexion
-    client_disconnect(sock);
-    mapping_finalize(addr);
+    free(buffer);
+    mapping_finalize(addr_fpga);
     return 0;
 }
 /** @ doxygen end group definition */

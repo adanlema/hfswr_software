@@ -32,7 +32,15 @@ int main() {
     struct sockaddr_in client_addr;
     socklen_t          addr_size;
 
+    // Manejo de errores...
     signal(SIGINT, handle_sigint);
+
+    // Creacion del buffer...
+    uint32_t * buffer = malloc(BUFFER_SIZE);
+    if (buffer == NULL) {
+        perror("Error allocating memory for buffer");
+        return -1;
+    }
     // Creacion del server...
     server_sock = server_initialize();
     if (server_sock < 0) {
@@ -42,31 +50,25 @@ int main() {
     listen(server_sock, 5);
     printf("Listening...\n");
 
-    // Creacion del buffer...
-    uint32_t * buffer = malloc(BUFFER_SIZE);
-    if (buffer == NULL) {
-        perror("Error allocating memory for buffer");
-        return -1;
-    }
     while (server_running) {
         addr_size   = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &addr_size);
         if (client_sock < 0) {
-            perror("[-]Error al conectar el cliente:");
+            perror("\n[-]Error al conectar el cliente:");
             continue; // Continuar esperando nuevas conexiones
-        } else
+        } else {
             printf("[+]Cliente conectado.\n");
-
-        while (1) {
-            memset(buffer, 0, BUFFER_SIZE);
-            ssize_t recv_result = recv(client_sock, buffer, BUFFER_SIZE, 0);
-            if (recv_result <= 0) { // Se perdio la conexion con el cliente
-                printf("[-]Cliente desconectado...\n");
-                break;
+            while (1) {
+                memset(buffer, 0, BUFFER_SIZE);
+                ssize_t recv_result = recv(client_sock, buffer, BUFFER_SIZE, 0);
+                if (recv_result <= 0) { // Se perdio la conexion con el cliente
+                    printf("[-]Cliente desconectado...\n");
+                    break;
+                }
+                printf("Datos obtenidos:\n%ls\n", buffer);
             }
-            printf("Datos obtenidos:\n%ls\n", buffer);
+            close(client_sock);
         }
-        close(client_sock);
     }
     free(buffer);
     server_disconnect(server_sock);
