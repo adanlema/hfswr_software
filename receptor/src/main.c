@@ -26,13 +26,7 @@
 int main() {
 
     volatile uint32_t * addr_fpga = mapping_initialize();
-    printf("Mapeo de memoria realizo con exito...\n");
-
-    int sock = client_create_socket();
-    if (sock < 0) {
-        printf("Error al inicializar el cliente...\n");
-        return -1;
-    }
+    printf("\n\nMapeo de memoria realizo con exito...\n");
 
     int32_t * buffer = malloc(BUFFER_SIZE);
     if (buffer == NULL) {
@@ -40,18 +34,28 @@ int main() {
         return -1;
     }
 
-    while (1) {
+    int sock = client_create_socket();
+    if (sock < 0) {
+        printf("Error al inicializar el cliente...\n");
+        return -1;
+    }
+
+    if (client_connect(sock) != 0) {
+        return -1;
+    }
+
+    int bandera = 0;
+    while (bandera < 2) {
         if (addr_fpga[FPGA_OFFSET_VALID] == 1) {
-            if (client_connect(sock) == 0) {
-                memset(buffer, 0, BUFFER_SIZE);
-                memcpy(buffer, (const void *)addr_fpga, BUFFER_SIZE);
-                send(sock, buffer, BUFFER_SIZE, 0);
-                printf("\nDatos enviados...\n");
-                addr_fpga[FPGA_OFFSET_VALID] = 0;
-                client_disconnect(sock);
-            }
+            memset(buffer, 0, BUFFER_SIZE);
+            memcpy(buffer, (const void *)addr_fpga, BUFFER_SIZE);
+            send(sock, buffer, BUFFER_SIZE, 0);
+            printf("\nDatos enviados...\n");
+            addr_fpga[FPGA_OFFSET_VALID] = 0;
+            bandera++;
         }
     };
+    client_disconnect(sock);
     free(buffer);
     mapping_finalize(addr_fpga);
     return 0;
