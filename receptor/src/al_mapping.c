@@ -12,9 +12,11 @@
 
 #include "al_mapping.h"
 /*==================[macros and definitions]=================================*/
-
+#define CANTIDAD 10
 /*==================[internal data declaration]==============================*/
-static volatile uint32_t * fpga_addr = NULL;
+static addrs_t fpga_addr[CANTIDAD] = {0};
+static uint8_t posicion            = 0;
+// static volatile uint32_t * fpga_addr = NULL;
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
@@ -24,26 +26,31 @@ static volatile uint32_t * fpga_addr = NULL;
 /*==================[internal functions definition]==========================*/
 
 /*==================[external functions definition]==========================*/
-volatile uint32_t * mapping_initialize() {
+addrs_t mapping_initialize(uint32_t addrs, uint32_t cant_reg) {
+    if (posicion < 10) {
+        posicion++;
+    } else {
+        return -1;
+    }
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
         perror("Error opening /dev/mem");
         exit(EXIT_FAILURE);
     }
 
-    fpga_addr = mmap(NULL, FPGA_REG * sizeof(uint32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd,
-                     FPGA_BASE_ADDRESS);
-    if (fpga_addr == MAP_FAILED) {
+    fpga_addr[posicion] =
+        mmap(NULL, cant_reg * sizeof(int32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, addrs);
+    if (fpga_addr[posicion] == MAP_FAILED) {
         perror("Error mapping FPGA register");
         close(fd);
         exit(EXIT_FAILURE);
     }
-
-    return fpga_addr;
+    close(fd);
+    return fpga_addr[posicion];
 }
-void mapping_finalize(volatile uint32_t * addr) {
+void mapping_finalize(addrs_t addr, uint32_t cant_reg) {
     if (addr != NULL) {
-        munmap((void *)addr, FPGA_REG * sizeof(uint32_t));
+        munmap((void *)addr, cant_reg * sizeof(int32_t));
         addr = NULL;
     }
 }
