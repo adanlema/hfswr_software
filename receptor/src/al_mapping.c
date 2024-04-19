@@ -30,7 +30,7 @@ addrs_t mapping_initialize(uint32_t addrs, uint32_t cant_reg) {
     if (posicion < 10) {
         posicion++;
     } else {
-        return -1;
+        return NULL;
     }
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
