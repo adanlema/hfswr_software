@@ -12,7 +12,7 @@ module bram_counter (
 //      CONSTANST
 //////////////////////////////////////////////////////////////////////////////////
 parameter COUNT_MAX = 2;
-parameter POS_DIG   = 2;
+parameter POS_DIG   = 5;           // 13 es el valor para guardar 2048 registros
 //////////////////////////////////////////////////////////////////////////////////
 //      WIRE AND REGISTERS
 //////////////////////////////////////////////////////////////////////////////////
@@ -23,7 +23,7 @@ reg [31:0]          addr_count = 0;
 
 
 always @(posedge clk) begin
-    if(rst) begin
+    if(rst || hab) begin
         addr_count <= 0;
     end else begin
         if(!hab && valid && !bandera) begin
@@ -35,7 +35,7 @@ always @(posedge clk) begin
                 count       <= count + 1;
             end else begin
                 count       <= 1'b0;
-                addr_count  <= addr_count + 1;
+                addr_count  <= addr_count + 32'd4;
                 bandera     <= 1'b0;
             end
         end

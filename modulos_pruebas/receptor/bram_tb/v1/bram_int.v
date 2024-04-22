@@ -1,47 +1,40 @@
 module bram_int (
     // Entradas
-    input               clk,
-    input               valid,
-    input   [31:0]      datos,
+    input  wire             clk,
+    input  wire             valid,
+    input  wire             sinc,
+    input  wire [31:0]      datos,
     // Salidas
-    output              enable,
-    output              we,
-    input   [31:0]      dout,
-    output  [31:0]      addr,
-    output  [31:0]      din
+    output wire [31:0]      addr,
+    output wire             clkb,
+    output wire [31:0]      din,
+    output wire             en_a,
+    output wire             en_b,
+    input  wire [1:0]       rdy_w,
+    output wire [1:0]       rdy,
+    output wire [3:0]       we,
+    output wire [31:0]      size_data
 );
 
 //////////////////////////////////////////////////////////////////////////////////
 //      WIRE AND REGISTERS
 //////////////////////////////////////////////////////////////////////////////////
 
-wire [31:0]         dout1;
 //CONTADOR
 wire                en;
 wire                rst_ctrl;
 wire [31:0]         addr_count;
 
-//CTRL
-wire                valid_ctrl;
-wire [31:0]         dout_ctrl;
-wire [31:0]         addr_ctrl;
-wire [31:0]         din_ctrl;
+//SINC_EDGE
+wire                sinc_wire;
+wire                sincedge_wire;
 
 
-//COMPUERTA AND
-wire                valid_and;
-
-//SALIDA
-wire                enable_wire;
-wire                we_wire;
-wire [31:0]         dout_wire;
-wire [31:0]         addr_wire;
-wire [31:0]         din_wire;
 //////////////////////////////////////////////////////////////////////////////////
 //      LOGICA
 //////////////////////////////////////////////////////////////////////////////////
 
-bram_counter counter_inst (
+bram_counter    bram_1 (
     //LI
     .clk(clk),
     .hab(en),
@@ -52,49 +45,38 @@ bram_counter counter_inst (
     .addr(addr_count)
 );
 
-bram_ctrl ctrl_inst (
+assign  sinc_wire   = !sinc;
+
+bram_sincedge   bram_2 (
+    .clk(clk),
+    .sinc(sinc_wire),
+    .sinc_edge(sincedge_wire)
+);
+
+bram_ctrl       bram_3 (
     //LI
     .clk(clk),
     .en(en),
+    .sinc(sinc_wire),
+    .sinc_edge(sincedge_wire),
     .rst_count(rst_ctrl),
+    .addr(addr_count),
     //LD
-    .dout(dout_ctrl),
-    .din(din_ctrl),
-    .valid(valid_ctrl),
-    .addr(addr_ctrl)
+    .en_a(en_a),
+    .en_b(en_b),
+    .rdy_w(rdy_w),
+    .rdy(rdy),
+    .size_data(size_data)
 );
 
-
-assign valid_and = (!en) && valid;
-
-bram_mult multiplexor_inst(
-    .clk(clk),
-    .en(en),
-    //ENT1
-    .addr1(addr_count),
-    .din1(datos),
-    .dout1(dout1),
-    .valid1(valid_and),
-    //ENT2
-    .addr2(addr_ctrl),
-    .din2(din_ctrl),
-    .dout2(dout_ctrl),
-    .valid2(valid_ctrl),
-    //SALIDA
-    .valid(we),
-    .enable(enable),
-    .addr(addr),
-    .din(din),
-    .dout(dout)
-);
 
 //////////////////////////////////////////////////////////////////////////////////
 //      SALIDAS
 //////////////////////////////////////////////////////////////////////////////////
 
-//assign enable   = enable_wire;
-//assign valid    = we_wire;
-//assign addr     = addr_wire;
-//assign din      = din_wire;
+assign  clkb    = clk;
+assign  we      = (valid && ~en) ? 4'b1111 : 4'b0000;
+assign  addr    = addr_count;
+assign  din     = datos;
 
 endmodule
