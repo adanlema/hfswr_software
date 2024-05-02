@@ -10,7 +10,7 @@ module bram_ctrl (
     output wire         en_a,
     output wire         en_b,
     input  wire [1:0]   rdy_w,
-    output wire [1:0]   rdy,
+    output wire [2:0]   rdy,
     output wire [31:0]  size_data
 );
 
@@ -40,7 +40,7 @@ always @(posedge clk) begin
                 rst_reg         <= 1'b0;
                 ena_reg         <= 1'b1;
                 enb_reg         <= 1'b0;
-                rdy_reg         <= 2'b00;
+                rdy_reg         <= 3'b000;
                 estado_actual   <= EST_MEM1;
             end
         end
@@ -50,7 +50,7 @@ always @(posedge clk) begin
                     rst_reg         <= 1'b1;
                     ena_reg         <= 1'b0;
                     enb_reg         <= 1'b1;
-                    rdy_reg         <= 2'b01;
+                    rdy_reg         <= 3'b001;
                     size_reg        <= 32'd2048;
                     estado_actual   <= EST_MEM2; 
                 end
@@ -58,7 +58,7 @@ always @(posedge clk) begin
                 rst_reg             <= 1'b1;
                 ena_reg             <= 1'b0;
                 enb_reg             <= 1'b0;
-                rdy_reg             <= 2'b01;
+                rdy_reg             <= 3'b101;
                 size_reg            <= (addr/4) + 1;
                 estado_actual       <= EST_INIT;
             end

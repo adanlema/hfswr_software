@@ -1,38 +1,29 @@
 /* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
 
-#ifndef FPGA_DRIVER_H
-#define FPGA_DRIVER_H
+#ifndef AL_MAPPING_H
+#define AL_MAPPING_H
+
 /*==================[inclusions]=============================================*/
-#include <stdio.h>
 #include <stdint.h>
 /*==================[macros]=================================================*/
-#define BARKER7_CODE  0x72
-#define BARKER7_NUM   0x7
-#define BARKER11_CODE 0x0712
-#define BARKER11_NUM  0xB
-#define BARKER13_CODE 0x1F35
-#define BARKER13_NUM  0xD
+#define FPGA_ADDRS  0x43C00000
+#define FPGA_REG    10
+#define BUFFER_SIZE FPGA_REG * sizeof(int32_t)
 
-#define FPGA_BASE_ADDRESS 0x43C00000
-#define FPGA_OFFSET_START 0
-#define FPGA_OFFSET_PHASE 1
-#define FPGA_OFFSET_T     2
-#define FPGA_OFFSET_PRT   3
-#define FPGA_OFFSET_CODE  4
-#define FPGA_OFFSET_NUMD  5
-#define FPGA_OFFSET_TB    6
-
-#define FPGA_REG 7
+#define OFFSET_START  0
+#define OFFSET_PHASE  1
+#define OFFSET_PERIOD 2
+#define OFFSET_PRT    3
+#define OFFSET_CODE   4
+#define OFFSET_NUMDIG 5
+#define OFFSET_TB     6
 /*==================[typedef]================================================*/
-
+typedef volatile uint32_t * addrs_t;
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-int  fpga_initialize();
-void fpga_finalize();
-void fpga_write_registers(uint32_t freq, uint32_t bw, uint32_t prf, uint32_t code,
-                          uint32_t num_code);
-
+addrs_t mapping_initialize(uint32_t addrs, uint32_t cant_reg);
+void    mapping_finalize(addrs_t addr, uint32_t cant_reg);
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
