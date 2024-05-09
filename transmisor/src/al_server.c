@@ -1,0 +1,124 @@
+/* Copyright 2024, Adan Lema <adanlema@hotmail.com> & Carcamo Mariano <mgcarcamo98@gmail.com> */
+
+/*==================[inclusions]=============================================*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <math.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <json-c/json.h>
+
+#include "al_server.h"
+#include "al_mapping.h"
+#include "al_params.h"
+/*==================[macros and definitions]=================================*/
+
+/*==================[internal data declaration]==============================*/
+
+/*==================[internal functions declaration]=========================*/
+static int serverCreateSocket();
+static int serverConnect(int sock);
+/*==================[internal data definition]===============================*/
+
+/*==================[external data definition]===============================*/
+
+/*==================[internal functions definition]==========================*/
+static int serverCreateSocket() {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("[-]Socket error:");
+        return -1;
+    }
+    printf("[+]TCP server socket created.\n");
+    return sock;
+}
+static int serverConnect(int sock) {
+    struct sockaddr_in addr;
+    memset(&addr, '\0', sizeof(addr));
+    addr.sin_family      = AF_INET;
+    addr.sin_port        = PORT_TX;
+    addr.sin_addr.s_addr = inet_addr(IP_TX);
+
+    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("[-]Bind error");
+        return -1;
+    }
+    printf("[+]Servidor creado con exito...\n[+]Bind to the port number: %d\n", PORT_TX);
+    return 0;
+}
+
+/*==================[external functions definition]==========================*/
+int serverInit() {
+    int sock = serverCreateSocket();
+    if (sock <= 0) {
+        return -1;
+    }
+    if (serverConnect(sock) != 0) {
+        return -1;
+    }
+    return sock;
+}
+
+void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
+    // void serverClientManagement(int confd, params_s * params) {
+    char *r_buff, *s_buff;
+
+    r_buff = malloc(BUFTCP_SIZE);
+    s_buff = malloc(BUFTCP_SIZE);
+
+    if (r_buff == NULL || s_buff == NULL) {
+        perror("Error al reservar memoria");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(r_buff, 0, BUFTCP_SIZE);
+    memset(s_buff, 0, BUFTCP_SIZE);
+
+    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}\n");
+    send(confd, s_buff, BUFTCP_SIZE, 0);
+
+    memset(s_buff, 0, BUFTCP_SIZE);
+    sprintf(s_buff,
+            "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, \"start\":%s}\n",
+            params->prf, params->freq, params->ab, params->code, params->code_num,
+            params->start ? "true" : "false");
+    send(confd, s_buff, BUFTCP_SIZE, 0);
+
+    while (1) {
+        if (!(recv(confd, r_buff, BUFTCP_SIZE, 0) == 0)) {
+            if (paramsStrtoJson(r_buff, params) == -1) {
+                memset(s_buff, 0, BUFTCP_SIZE);
+                strcpy(s_buff, "{\"error\":\"Formato JSON no identificado\"}\n");
+                send(confd, s_buff, BUFTCP_SIZE, 0);
+            } else {
+                paramsSetConfig(addr_fpga, params);
+                paramsSaveConfig(params);
+                memset(s_buff, 0, BUFTCP_SIZE);
+                strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}\n");
+                send(confd, s_buff, BUFTCP_SIZE, 0);
+            }
+            memset(s_buff, 0, BUFTCP_SIZE);
+            sprintf(s_buff,
+                    "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, "
+                    "\"start\":%s}\n",
+                    params->prf, params->freq, params->ab, params->code, params->code_num,
+                    params->start ? "true" : "false");
+            send(confd, s_buff, BUFTCP_SIZE, 0);
+        } else {
+            break;
+        }
+    }
+
+    free(r_buff);
+    free(s_buff);
+}
+
+/** @ doxygen end group definition */
+/** @ doxygen end group definition */
+/** @ doxygen end group definition */
+/*==================[end of file]============================================*/

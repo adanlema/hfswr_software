@@ -1,4 +1,4 @@
-/* Copyright 2023, Adan Lema <adanlema@hotmail.com> */
+/* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
 
 #ifndef AL_SERVER_H
 #define AL_SERVER_H
@@ -7,17 +7,17 @@
 #include <stdio.h>
 #include <stdint.h>
 /*==================[macros]=================================================*/
-#define PORT        5566
-#define IP_ADDRESS  "10.0.255.126"
-#define FPGA_REG    4096
-#define BUFFER_SIZE FPGA_REG * sizeof(uint32_t)
+#define PORT_TX     5566
+#define IP_TX       "10.0.255.126"
+#define BUFTCP_SIZE 1024
 /*==================[typedef]================================================*/
 
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-int  server_initialize();
-void server_disconnect(int sock);
+int  serverInit();
+void serverClientManagement(int confd, params_t params, addrs_t addr_fpga);
+
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

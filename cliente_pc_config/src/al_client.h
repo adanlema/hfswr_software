@@ -1,29 +1,36 @@
 /* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
 
-#ifndef AL_MAPPING_H
-#define AL_MAPPING_H
+#ifndef AL_CLIENT_H
+#define AL_CLIENT_H
 
 /*==================[inclusions]=============================================*/
+#include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 /*==================[macros]=================================================*/
-#define FPGA_ADDRS  0x43C00000
-#define FPGA_REG    10
-#define BUFFER_SIZE FPGA_REG * sizeof(int32_t)
+#define PORT_TX 5566
+#define IP_TX   "10.0.255.126"
+#define PORT_RX 2000
+#define IP_RX   "10.0.0.0"
 
-#define OFFSET_START  0
-#define OFFSET_PHASE  1
-#define OFFSET_PERIOD 2
-#define OFFSET_PRT    3
-#define OFFSET_CODE   4
-#define OFFSET_NUMDIG 5
-#define OFFSET_TB     6
+#define BUFTCP_SIZE 1024
+
 /*==================[typedef]================================================*/
-typedef volatile uint32_t * addrs_t;
+typedef struct client_s {
+    char               ip[20];
+    uint32_t           port;
+    int                sock;
+    struct sockaddr_in addr;
+} * client_t;
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg);
-void    mappingFinalize(addrs_t addr, uint32_t cant_reg);
+client_t clientCreate(uint32_t port, char * ip);
+int      clientConnect(client_t client);
+void     clientDisconnect(client_t client);
+void     clientRemove(client_t client);
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

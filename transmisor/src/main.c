@@ -1,20 +1,25 @@
-/* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
+/* Copyright 2024, Adan Lema <adanlema@hotmail.com> & Carcamo Mariano <mgcarcamo98@gmail.com> */
 
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
-#include "al_mapping.h"
-/*==================[macros and definitions]=================================*/
-#define PRF  50
-#define AB   5000
-#define FREQ 10000000
+#include <string.h>
+#include <unistd.h>
+#include <math.h>
+#include <signal.h>
 
-#define BARKER7_CODE  0x72
-#define BARKER7_NUM   0x7
-#define BARKER11_CODE 0x0712
-#define BARKER11_NUM  0xB
-#define BARKER13_CODE 0x1F35
-#define BARKER13_NUM  0xD
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <json-c/json.h>
+
+#include "al_mapping.h"
+#include "al_server.h"
+#include "al_params.h"
+/*==================[macros and definitions]=================================*/
+
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -24,36 +29,54 @@
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-
+void MySignalHandler(int sig);
 /*==================[external functions definition]==========================*/
 
 int main() {
-    addrs_t addr_fpga = mapping_initialize(FPGA_ADDRS, FPGA_REG);
+    int                server_sock, client_sock;
+    struct sockaddr_in client_addr;
+    socklen_t          addr_size;
+
+    // Mapeo de memoria...
+    addrs_t addr_fpga = mappingInit(FPGA_ADDRS, FPGA_REG);
     if (addr_fpga == NULL) {
         return -1;
     }
-    printf("\n\n\nMapeo de memoria realizo con exito...\n");
+    params_t params = paramsCreate();
+    paramsSetConfig(addr_fpga, params);
 
-    /*  Variables por defecto */
-    uint32_t prt_value   = ceil(122880000 / PRF);
-    uint32_t phase_value = ceil((FREQ * 1e9) / 28610229);
-    uint32_t tb          = ceil(122880000 / AB);
-    uint32_t t_value     = ceil(BARKER11_NUM * tb);
+    // Creacion del server...
+    server_sock = server_initialize();
+    if (server_sock < 0) {
+        return -1;
+    }
 
-    /* Escritura y liberacion del bloque */
-    addr_fpga[OFFSET_START]  = 0;
-    addr_fpga[OFFSET_PHASE]  = phase_value;
-    addr_fpga[OFFSET_PERIOD] = t_value;
-    addr_fpga[OFFSET_PRT]    = prt_value;
-    addr_fpga[OFFSET_CODE]   = BARKER11_CODE;
-    addr_fpga[OFFSET_NUMDIG] = BARKER11_NUM;
-    addr_fpga[OFFSET_TB]     = tb;
-    addr_fpga[OFFSET_START]  = 1;
+    // Manejo de señales de linux...
+    signal(SIGINT, &MySignalHandler);
 
-    mapping_finalize(addr_fpga, FPGA_REG);
+    listen(server_sock, 5);
+    while (1) {
+        // Conexion con el cliente...
+        addr_size   = sizeof(client_addr);
+        client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &addr_size);
+        if (client_sock < 0) {
+            perror("\n[-]Error al conectar el cliente:");
+            exit(0);
+        }
+        serverClientManagement(client_sock, params, addr_fpga);
+        close(client_sock);
+    }
+
+    mappingFinalize(addr_fpga, FPGA_REG);
+    close(server_sock);
+    close(client_sock);
     return 0;
 }
 
+void MySignalHandler(int sig) {
+    printf("\nCerrando el programa...\n");
+    exit(0);
+}
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

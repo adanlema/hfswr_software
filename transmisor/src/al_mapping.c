@@ -26,7 +26,7 @@ static uint8_t posicion            = 0;
 /*==================[internal functions definition]==========================*/
 
 /*==================[external functions definition]==========================*/
-addrs_t mapping_initialize(uint32_t addrs, uint32_t cant_reg) {
+addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
     if (posicion < 10) {
         posicion++;
     } else {
@@ -48,7 +48,7 @@ addrs_t mapping_initialize(uint32_t addrs, uint32_t cant_reg) {
     close(fd);
     return fpga_addr[posicion];
 }
-void mapping_finalize(addrs_t addr, uint32_t cant_reg) {
+void mappingFinalize(addrs_t addr, uint32_t cant_reg) {
     if (addr != NULL) {
         munmap((void *)addr, cant_reg * sizeof(int32_t));
         addr = NULL;
