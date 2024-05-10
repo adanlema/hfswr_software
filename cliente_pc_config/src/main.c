@@ -13,44 +13,25 @@
 #include <json-c/json.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#include "al_params.h"
+#include "al_client.h"
 /*==================[macros and definitions]=================================*/
 #define IP   "127.0.0.1"
 #define PORT 2000
 
 #define BUFF_SIZE 1024
 #define SIZE_CODE 100
-
-#define BARKER7_CODE  0x72
-#define BARKER7_NUM   0x7
-#define BARKER11_CODE 0x0712
-#define BARKER11_NUM  0xB
-#define BARKER13_CODE 0x1F35
-#define BARKER13_NUM  0xD
 /*==================[internal data declaration]==============================*/
-typedef struct {
-    uint32_t prf;
-    uint32_t ab;
-    uint32_t freq;
-    uint32_t code;
-    uint32_t code_num;
-    uint32_t start;
-} params_s;
-
-typedef struct {
-    int *      soc;
-    params_s * params;
-    char *     r_buff;
-    char *     s_buff;
-} thread_args;
 
 /*==================[internal functions declaration]=========================*/
-void code_manager(params_s * config, const char * code);
+
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-int update_params(char * str, params_s * params) {
+int update_params(char * str, params_t params) {
     struct json_object * parsed_json;
     struct json_object * prf;
     struct json_object * freq;
@@ -86,57 +67,6 @@ int update_params(char * str, params_s * params) {
     }
 }
 
-int str_to_json(char * str, params_s * params) {
-    struct json_object * parsed_json;
-    struct json_object * prf;
-    struct json_object * freq;
-    struct json_object * ab;
-    struct json_object * code;
-    struct json_object * start;
-
-    parsed_json = json_tokener_parse(str);
-    if (parsed_json != NULL) {
-        json_object_object_get_ex(parsed_json, "prf", &prf);
-        params->prf = prf != NULL ? json_object_get_int(prf) : params->prf;
-
-        json_object_object_get_ex(parsed_json, "freq", &freq);
-        params->freq = freq != NULL ? json_object_get_int(freq) : params->freq;
-
-        json_object_object_get_ex(parsed_json, "ab", &ab);
-        params->ab = ab != NULL ? json_object_get_int(ab) : params->ab;
-
-        json_object_object_get_ex(parsed_json, "start", &start);
-        params->start = start != NULL ? json_object_get_int(start) : params->start;
-
-        json_object_object_get_ex(parsed_json, "code", &code);
-        if (code != NULL)
-            code_manager(params, json_object_get_string(code));
-
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
-void code_manager(params_s * config, const char * code) {
-    if (!strcmp("barker_7", code)) {
-        config->code     = BARKER7_CODE;
-        config->code_num = BARKER7_NUM;
-        return;
-    }
-    if (!strcmp("barker_11", code)) {
-        config->code     = BARKER11_CODE;
-        config->code_num = BARKER11_NUM;
-        return;
-    }
-    if (!strcmp("barker_13", code)) {
-        config->code     = BARKER13_CODE;
-        config->code_num = BARKER13_NUM;
-        return;
-    }
-    printf("ERROR: Codigo invalido\n");
-}
-
 void * recive_msg(void * args) {
     thread_args * arg    = args;
     char *        buff   = arg->r_buff;
@@ -163,7 +93,7 @@ void * send_msg(void * args) {
         if (!strcmp(buff, "EXIT")) {
             break;
         }
-        if (str_to_json(buff, params) == -1) {
+        if (paramsStrtoJson(buff, params) == -1) {
             printf("\nERROR: Se requiere una estructura JSON para enviar los datos\n");
         } else {
             memset(buff, 0, BUFF_SIZE);

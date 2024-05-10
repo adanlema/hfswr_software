@@ -6,7 +6,7 @@ BIN_DIR = $(OUT_DIR)/bin
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
-.DEFAULT_GOAL := run
+.DEFAULT_GOAL := all
 
 .PHONY: clean run
 
@@ -23,12 +23,11 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	gcc -c $< -o $@ -lm
 
 $(BIN_DIR)/app.elf: $(OBJ_FILES) | $(BIN_DIR)
-	gcc -o $@ $(OBJ_FILES) -lm
+	gcc -o $@ $(OBJ_FILES) -lm -json-c
 
 all: $(BIN_DIR)/app.elf
 
 clean:
 	rm -rf $(OUT_DIR)
-
 run: $(BIN_DIR)/app.elf
-	@./$<
+	$(BIN_DIR)/app.elf

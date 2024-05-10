@@ -38,24 +38,25 @@ static int serverCreateSocket() {
     return sock;
 }
 static int serverConnect(int sock) {
-    struct sockaddr_in addr;
-    memset(&addr, '\0', sizeof(addr));
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = PORT_TX;
-    addr.sin_addr.s_addr = inet_addr(IP_TX);
+    struct sockaddr_in server;
+    memset(&server, '\0', sizeof(addr));
+    server.sin_family      = AF_INET;
+    server.sin_port        = htons(PORT_TX);
+    server.sin_addr.s_addr = inet_addr(IP_TX);
 
-    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("[-]Bind error");
         return -1;
     }
-    printf("[+]Servidor creado con exito...\n[+]Bind to the port number: %d\n", PORT_TX);
+    printf("[+]Servidor creado con exito...\n[+]IP: %s\n[+]Bind to the port number: %d\n", IP_TX,
+           PORT_TX);
     return 0;
 }
 
 /*==================[external functions definition]==========================*/
 int serverInit() {
     int sock = serverCreateSocket();
-    if (sock <= 0) {
+    if (sock == -1) {
         return -1;
     }
     if (serverConnect(sock) != 0) {

@@ -3,6 +3,7 @@
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
@@ -33,9 +34,8 @@ void MySignalHandler(int sig);
 /*==================[external functions definition]==========================*/
 
 int main() {
-    int                server_sock, client_sock;
-    struct sockaddr_in client_addr;
-    socklen_t          addr_size;
+    int                n, server_sock, client_sock;
+    struct sockaddr_in client;
 
     // Mapeo de memoria...
     addrs_t addr_fpga = mappingInit(FPGA_ADDRS, FPGA_REG);
@@ -46,19 +46,23 @@ int main() {
     paramsSetConfig(addr_fpga, params);
 
     // Creacion del server...
-    server_sock = server_initialize();
+    server_sock = serverInit();
     if (server_sock < 0) {
-        return -1;
+        perror("Error al crear el server...");
+        exit(EXIT_FAILURE);
     }
 
     // Manejo de señales de linux...
     signal(SIGINT, &MySignalHandler);
 
-    listen(server_sock, 5);
+    if (listen(server_sock, 2) == -1) {
+        perror("Error al poner en escucha el socket");
+    }
+
     while (1) {
         // Conexion con el cliente...
-        addr_size   = sizeof(client_addr);
-        client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &addr_size);
+        n           = sizeof(client);
+        client_sock = accept(server_sock, (struct sockaddr *)&client, &n);
         if (client_sock < 0) {
             perror("\n[-]Error al conectar el cliente:");
             exit(0);
