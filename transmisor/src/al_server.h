@@ -8,10 +8,10 @@
 #include <stdint.h>
 
 #include "al_mapping.h"
-#include "al_server.h"
+#include "al_params.h"
 /*==================[macros]=================================================*/
 #define PORT_TX     5566
-#define IP_TX       "10.0.255.71"
+#define IP_TX       "0.0.0.0"
 #define BUFTCP_SIZE 1024
 /*==================[typedef]================================================*/
 

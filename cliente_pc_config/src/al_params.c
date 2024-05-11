@@ -14,9 +14,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <json-c/json.h>
+#include <pthread.h>
 
 #include "al_params.h"
 #include "al_mapping.h"
+#include "al_client.h"
 
 /*==================[macros and definitions]=================================*/
 
@@ -25,8 +27,8 @@
 /*==================[internal functions declaration]=========================*/
 static void paramsCodeManager(params_t config, const char * code);
 /*==================[internal data definition]===============================*/
-static struct params_s parametros = {0};
-static const char *    FILE_JSON  = "config.json";
+static struct params_s      parametros = {0};
+static struct thread_args_s thread     = {0};
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -82,9 +84,63 @@ int paramsStrtoJson(char * str, params_t params) {
     }
 }
 
+int paramsUpdate(char * str, params_t params) {
+    struct json_object * parsed_json;
+    struct json_object * prf;
+    struct json_object * freq;
+    struct json_object * ab;
+    struct json_object * code;
+    struct json_object * code_num;
+    struct json_object * start;
+
+    parsed_json = json_tokener_parse(str);
+    if (parsed_json != NULL) {
+        json_object_object_get_ex(parsed_json, "prf", &prf);
+        params->prf = prf != NULL ? json_object_get_int(prf) : params->prf;
+
+        json_object_object_get_ex(parsed_json, "freq", &freq);
+        params->freq = freq != NULL ? json_object_get_int(freq) : params->freq;
+
+        json_object_object_get_ex(parsed_json, "ab", &ab);
+        params->ab = ab != NULL ? json_object_get_int(ab) : params->ab;
+
+        json_object_object_get_ex(parsed_json, "code", &code);
+        params->code = code != NULL ? json_object_get_int(code) : params->code;
+
+        json_object_object_get_ex(parsed_json, "code-num", &code_num);
+        params->code_num = code_num != NULL ? json_object_get_int(code_num) : params->code_num;
+
+        json_object_object_get_ex(parsed_json, "start", &start);
+        params->start = start != NULL ? json_object_get_int(start) : params->start;
+
+        return 0;
+
+    } else {
+        return -1;
+    }
+}
+
 params_t paramsCreate() {
-    paramsLoadConfig();
     return &parametros;
+}
+thread_args_t threadCreate(int * sock, params_t params) {
+    char *r_buff, *s_buff;
+    r_buff = malloc(BUFTCP_SIZE);
+    s_buff = malloc(BUFTCP_SIZE);
+    memset(r_buff, 0, BUFTCP_SIZE);
+    memset(s_buff, 0, BUFTCP_SIZE);
+
+    thread.soc    = sock;
+    thread.r_buff = r_buff;
+    thread.s_buff = s_buff;
+    thread.params = params;
+
+    return &thread;
+}
+
+void threadFinalize(thread_args_t thr) {
+    free(thr->r_buff);
+    free(thr->s_buff);
 }
 
 /** @ doxygen end group definition */

@@ -26,34 +26,33 @@
 static void paramsLoadConfig();
 /*==================[internal data definition]===============================*/
 static struct params_s parametros = {0};
-static const char *    FILE_JSON  = "config.json";
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
 static void paramsLoadConfig() {
-    FILE * file = fopen(FILE_JSON, "r");
+    FILE * file = fopen(FILE_TXT, "r");
     if (file == NULL) {
+        perror("Error al abrir el archivo...");
+        return;
+    }
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    if (fileSize == 0) {
         parametros.prf      = DEFAULT_PRF;
         parametros.ab       = DEFAULT_AB;
         parametros.freq     = DEFAULT_FREQ;
         parametros.code     = DEFAULT_CODE;
         parametros.code_num = DEFAULT_CODE_NUM;
         parametros.start    = DEFAULT_START;
-        fclose(file);
-        if (ferror(file)) {
-            perror("Error al cerrar el archivo");
-        }
-        return;
-    }
 
-    char texto_json[100];
-    if (fgets(texto_json, sizeof(texto_json), file) != NULL) {
-        paramsStrtoJson(texto_json, &parametros);
+    } else {
+        rewind(file);
+        char texto_json[100];
+        if (fgets(texto_json, sizeof(texto_json), file) != NULL) {
+            paramsStrtoJson(texto_json, &parametros);
+        }
     }
     fclose(file);
-    if (ferror(file)) {
-        perror("Error al cerrar el archivo");
-    }
 }
 /*==================[external functions definition]==========================*/
 
@@ -112,17 +111,14 @@ void paramsSetConfig(addrs_t mem_p, params_t config) {
 }
 
 void paramsSaveConfig(params_t params) {
-    FILE * file = fopen(FILE_JSON, "w");
+    FILE * file = fopen(FILE_TXT, "w");
     if (file == NULL) {
         perror("Error al abrir el archivo");
         return;
     }
-    fprintf(file, "{\"prf\": %u, ", params->prf);
-    fprintf(file, "\"ab\": %u, ", params->ab);
-    fprintf(file, "\"freq\": %u, ", params->freq);
-    fprintf(file, "\"code\": %u, ", params->code);
-    fprintf(file, "\"code_num\": %u, ", params->code_num);
-    fprintf(file, "\"start\": %u}\n", params->start);
+    fprintf(file,
+            "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, \"start\":%d}\n",
+            params->prf, params->freq, params->ab, params->code, params->code_num, params->start);
     fclose(file);
     if (ferror(file)) {
         perror("Error al cerrar el archivo");
@@ -130,7 +126,12 @@ void paramsSaveConfig(params_t params) {
 }
 
 void paramsRestoreDefault(addrs_t addrs, params_t params) {
-    remove(FILE_JSON);
+    FILE * file = fopen(FILE_TXT, "w");
+    if (file == NULL) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+    fclose(file);
     paramsLoadConfig();
     paramsSetConfig(addrs, params);
 }

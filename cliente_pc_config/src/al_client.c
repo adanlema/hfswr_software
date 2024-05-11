@@ -6,16 +6,27 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "al_client.h"
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-struct client_s cliente = {0};
+struct client_s {
+    char               ip[20];
+    uint32_t           port;
+    int                sock;
+    struct sockaddr_in addr;
+};
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
+static struct client_s cliente = {0};
 
 /*==================[external data definition]===============================*/
 
@@ -26,7 +37,6 @@ static int client_create_socket() {
         perror("[-]Socket error:");
         return -1;
     }
-    printf("[+]TCP client socket created.\n");
     return sock;
 }
 
@@ -36,10 +46,10 @@ client_t clientCreate(uint32_t port, char * ip) {
     cliente.port = port;
     strcpy(cliente.ip, ip);
 
-    memset(&client.addr, '\0', sizeof(client.addr));
-    client.addr.sin_family      = AF_INET;
-    client.addr.sin_port        = htons(port);
-    client.addr.sin_addr.s_addr = inet_addr(ip);
+    memset(&cliente.addr, '\0', sizeof(cliente.addr));
+    cliente.addr.sin_family      = AF_INET;
+    cliente.addr.sin_port        = htons(port);
+    cliente.addr.sin_addr.s_addr = inet_addr(ip);
     return &cliente;
 }
 
@@ -57,11 +67,8 @@ void clientDisconnect(client_t client) {
     printf("Desconexion del cliente del server...\n");
 }
 
-void clientRemove(client_t client) {
-    if (client != NULL) {
-        close(client->sock);
-        free(client);
-    }
+int clientGetDirSock(client_t client) {
+    return &client->sock;
 }
 
 /** @ doxygen end group definition */

@@ -39,7 +39,7 @@ static int serverCreateSocket() {
 }
 static int serverConnect(int sock) {
     struct sockaddr_in server;
-    memset(&server, '\0', sizeof(addr));
+    memset(&server, '\0', sizeof(server));
     server.sin_family      = AF_INET;
     server.sin_port        = htons(PORT_TX);
     server.sin_addr.s_addr = inet_addr(IP_TX);

@@ -15,7 +15,7 @@
 #define DEFAULT_FREQ     10000000
 #define DEFAULT_PRF      50
 #define DEFAULT_START    0
-
+#define FILE_TXT         "src/config.txt"
 /*==================[typedef]================================================*/
 // typedef struct params_s * params_t;
 typedef struct params_s {

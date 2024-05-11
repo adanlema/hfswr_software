@@ -6,8 +6,6 @@
 /*==================[inclusions]=============================================*/
 #include <stdint.h>
 #include <stdio.h>
-
-#include "al_mapping.h"
 /*==================[macros]=================================================*/
 #define BARKER7_CODE  0x72
 #define BARKER7_NUM   0x7
@@ -25,23 +23,22 @@ typedef struct params_s {
     uint32_t start;
 } * params_t;
 
-typedef struct {
+typedef struct thread_args_s {
     int *    soc;
     params_t params;
     char *   r_buff;
     char *   s_buff;
-} thread_args;
+} * thread_args_t;
 
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
 
-int      paramsStrtoJson(char * str, params_t params);
-void     paramsCodeManager(params_t config, const char * code);
-void     paramsSetConfig(addrs_t mem_p, params_t config);
-void     paramsSaveConfig(params_t params);
-void     paramsRestoreDefault(addrs_t addrs, params_t params);
-params_t paramsCreate();
+int           paramsStrtoJson(char * str, params_t params);
+int           paramsUpdate(char * str, params_t params);
+params_t      paramsCreate();
+thread_args_t threadCreate(int * sock, params_t params);
+void          threadFinalize(thread_args_t thr);
 
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
