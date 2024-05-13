@@ -24,8 +24,7 @@
 
 /*==================[internal functions declaration]=========================*/
 static void paramsLoadConfig();
-static paramsRestoreDefault(addrs_t addrs, params_t params);
-static void paramsCommand(char * command);
+static void paramsCommand(const char * command);
 /*==================[internal data definition]===============================*/
 static struct params_s parametros = {0};
 /*==================[external data definition]===============================*/
@@ -58,18 +57,7 @@ static void paramsLoadConfig() {
     fclose(file);
 }
 
-static paramsRestoreDefault(addrs_t addrs, params_t params) {
-    FILE * file = fopen(FILE_TXT, "w");
-    if (file == NULL) {
-        log_add("[ERROR]Error al abrir el archivo.");
-        return;
-    }
-    fclose(file);
-    paramsLoadConfig();
-    paramsSetConfig(addrs, params);
-}
-
-static void paramsCommand(char * command) {
+static void paramsCommand(const char * command) {
     if (!strcmp(command, "default")) {
         parametros.prf      = DEFAULT_PRF;
         parametros.ab       = DEFAULT_AB;
@@ -114,7 +102,7 @@ int paramsStrtoJson(char * str, params_t params) {
 
         json_object_object_get_ex(parsed_json, "command", &command);
         if (command != NULL) {
-            paramsCommand(parajson_object_get_string(command));
+            paramsCommand(json_object_get_string(command));
         }
         return 0;
 

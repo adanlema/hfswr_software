@@ -58,7 +58,6 @@ int clientConnect(client_t client) {
         perror("Error al conectar el cliente con el servidor: ");
         return -1;
     }
-    printf("Cliente conectado con exito...\n");
     return 0;
 }
 
@@ -67,7 +66,7 @@ void clientDisconnect(client_t client) {
     printf("Desconexion del cliente del server...\n");
 }
 
-int clientGetDirSock(client_t client) {
+void * clientGetDirSock(client_t client) {
     return &client->sock;
 }
 

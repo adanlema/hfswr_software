@@ -74,22 +74,24 @@ int main() {
 
     client_t client_tx = clientCreate(PORT_TX, IP_TX);
     if (clientConnect(client_tx) != 0) {
-        printf("\nError al conectar el cliente...\n");
+        printf("\n\nError al conectar el cliente...\n");
         return 1;
     }
-
+    printf("\n\n[+] Cliente conectado con exito...\n[+] IP: %s\n[+] PORT: %u\n[+] Escriba EXIT "
+           "para salir\n\n",
+           IP_TX, PORT_TX);
     params_t      usr_params_p = paramsCreate();
     thread_args_t thread_tx    = threadCreate(clientGetDirSock(client_tx), usr_params_p);
 
     pthread_t thread_recv, thread_send;
     err = pthread_create(&thread_recv, NULL, recive_msg, thread_tx);
     if (err) {
-        printf("An error occured: %d", err);
+        printf("An error occured: %d\n", err);
         return 1;
     }
     err = pthread_create(&thread_send, NULL, send_msg, thread_tx);
     if (err) {
-        printf("An error occured: %d", err);
+        printf("An error occured: %d\n", err);
         return 1;
     }
 

@@ -84,7 +84,7 @@ void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
     memset(r_buff, 0, BUFTCP_SIZE);
     memset(s_buff, 0, BUFTCP_SIZE);
 
-    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}\n");
+    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}");
     send(confd, s_buff, BUFTCP_SIZE, 0);
 
     memset(s_buff, 0, BUFTCP_SIZE);
@@ -104,7 +104,7 @@ void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
                 paramsSetConfig(addr_fpga, params);
                 paramsSaveConfig(params);
                 memset(s_buff, 0, BUFTCP_SIZE);
-                strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}\n");
+                strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
                 send(confd, s_buff, BUFTCP_SIZE, 0);
             }
             memset(s_buff, 0, BUFTCP_SIZE);

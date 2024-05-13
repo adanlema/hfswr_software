@@ -17,7 +17,6 @@
 #include <pthread.h>
 
 #include "al_params.h"
-#include "al_mapping.h"
 #include "al_client.h"
 
 /*==================[macros and definitions]=================================*/
