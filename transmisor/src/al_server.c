@@ -16,10 +16,11 @@
 #include "al_server.h"
 #include "al_mapping.h"
 #include "al_params.h"
+#include "log_manager.h"
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-
+char log_buff[256];
 /*==================[internal functions declaration]=========================*/
 static int serverCreateSocket();
 static int serverConnect(int sock);
@@ -31,10 +32,10 @@ static int serverConnect(int sock);
 static int serverCreateSocket() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-        perror("[-]Socket error:");
+        log_add("[ERROR]Error al crear el socket.");
         return -1;
     }
-    printf("[+]TCP server socket created.\n");
+    log_add("[SUCCESS]TCP socket creado con exito");
     return sock;
 }
 static int serverConnect(int sock) {
@@ -45,11 +46,14 @@ static int serverConnect(int sock) {
     server.sin_addr.s_addr = inet_addr(IP_TX);
 
     if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        perror("[-]Bind error");
+        log_add("[ERROR]Error de vinculacion (Bind error)");
         return -1;
     }
-    printf("[+]Servidor creado con exito...\n[+]IP: %s\n[+]Bind to the port number: %d\n", IP_TX,
-           PORT_TX);
+    log_add("[SUCCESS]Servidor creado con exito");
+    sprintf(log_buff, "[+]IP: %s", IP_TX);
+    log_add(log_buff);
+    sprintf(log_buff, "[+]Vinculado al puerto numero: %d", PORT_TX);
+    log_add(log_buff);
     return 0;
 }
 
@@ -73,7 +77,7 @@ void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
     s_buff = malloc(BUFTCP_SIZE);
 
     if (r_buff == NULL || s_buff == NULL) {
-        perror("Error al reservar memoria");
+        log_add("[ERROR]Error al reservar memoria.");
         exit(EXIT_FAILURE);
     }
 
@@ -110,6 +114,7 @@ void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
                     params->prf, params->freq, params->ab, params->code, params->code_num,
                     params->start ? "true" : "false");
             send(confd, s_buff, BUFTCP_SIZE, 0);
+
         } else {
             break;
         }

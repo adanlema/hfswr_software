@@ -17,13 +17,15 @@
 
 #include "al_params.h"
 #include "al_mapping.h"
-
+#include "log_manager.h"
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
 static void paramsLoadConfig();
+static paramsRestoreDefault(addrs_t addrs, params_t params);
+static void paramsCommand(char * command);
 /*==================[internal data definition]===============================*/
 static struct params_s parametros = {0};
 /*==================[external data definition]===============================*/
@@ -32,7 +34,7 @@ static struct params_s parametros = {0};
 static void paramsLoadConfig() {
     FILE * file = fopen(FILE_TXT, "r");
     if (file == NULL) {
-        perror("Error al abrir el archivo...");
+        log_add("[ERROR]Error al abrir el archivo.");
         return;
     }
     fseek(file, 0, SEEK_END);
@@ -50,10 +52,34 @@ static void paramsLoadConfig() {
         char texto_json[100];
         if (fgets(texto_json, sizeof(texto_json), file) != NULL) {
             paramsStrtoJson(texto_json, &parametros);
+            parametros.start = DEFAULT_START;
         }
     }
     fclose(file);
 }
+
+static paramsRestoreDefault(addrs_t addrs, params_t params) {
+    FILE * file = fopen(FILE_TXT, "w");
+    if (file == NULL) {
+        log_add("[ERROR]Error al abrir el archivo.");
+        return;
+    }
+    fclose(file);
+    paramsLoadConfig();
+    paramsSetConfig(addrs, params);
+}
+
+static void paramsCommand(char * command) {
+    if (!strcmp(command, "default")) {
+        parametros.prf      = DEFAULT_PRF;
+        parametros.ab       = DEFAULT_AB;
+        parametros.freq     = DEFAULT_FREQ;
+        parametros.code     = DEFAULT_CODE;
+        parametros.code_num = DEFAULT_CODE_NUM;
+        parametros.start    = DEFAULT_START;
+    }
+}
+
 /*==================[external functions definition]==========================*/
 
 int paramsStrtoJson(char * str, params_t params) {
@@ -64,6 +90,7 @@ int paramsStrtoJson(char * str, params_t params) {
     struct json_object * code;
     struct json_object * code_num;
     struct json_object * start;
+    struct json_object * command;
 
     parsed_json = json_tokener_parse(str);
     if (parsed_json != NULL) {
@@ -85,6 +112,10 @@ int paramsStrtoJson(char * str, params_t params) {
         json_object_object_get_ex(parsed_json, "start", &start);
         params->start = start != NULL ? json_object_get_int(start) : params->start;
 
+        json_object_object_get_ex(parsed_json, "command", &command);
+        if (command != NULL) {
+            paramsCommand(parajson_object_get_string(command));
+        }
         return 0;
 
     } else {
@@ -113,7 +144,7 @@ void paramsSetConfig(addrs_t mem_p, params_t config) {
 void paramsSaveConfig(params_t params) {
     FILE * file = fopen(FILE_TXT, "w");
     if (file == NULL) {
-        perror("Error al abrir el archivo");
+        log_add("[ERROR]Error al abrir el archivo.");
         return;
     }
     fprintf(file,
@@ -121,19 +152,8 @@ void paramsSaveConfig(params_t params) {
             params->prf, params->freq, params->ab, params->code, params->code_num, params->start);
     fclose(file);
     if (ferror(file)) {
-        perror("Error al cerrar el archivo");
+        log_add("[ERROR]Error al cerrar el archivo.");
     }
-}
-
-void paramsRestoreDefault(addrs_t addrs, params_t params) {
-    FILE * file = fopen(FILE_TXT, "w");
-    if (file == NULL) {
-        perror("Error al abrir el archivo");
-        return;
-    }
-    fclose(file);
-    paramsLoadConfig();
-    paramsSetConfig(addrs, params);
 }
 
 params_t paramsCreate() {

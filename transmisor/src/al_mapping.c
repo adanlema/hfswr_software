@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "al_mapping.h"
+#include "log_manager.h"
 /*==================[macros and definitions]=================================*/
 #define CANTIDAD 10
 /*==================[internal data declaration]==============================*/
@@ -34,14 +35,14 @@ addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
     }
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
-        perror("Error opening /dev/mem");
+        log_add("[ERROR]Error al abrir /dev/mem");
         exit(EXIT_FAILURE);
     }
 
     fpga_addr[posicion] =
         mmap(NULL, cant_reg * sizeof(int32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, addrs);
     if (fpga_addr[posicion] == MAP_FAILED) {
-        perror("Error mapping FPGA register");
+        log_add("[ERROR]]Error al mapear los regisros de FPGA.");
         close(fd);
         exit(EXIT_FAILURE);
     }

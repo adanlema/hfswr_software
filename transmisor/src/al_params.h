@@ -33,7 +33,6 @@ typedef struct params_s {
 int      paramsStrtoJson(char * str, params_t params);
 void     paramsSetConfig(addrs_t mem_p, params_t config);
 void     paramsSaveConfig(params_t params);
-void     paramsRestoreDefault(addrs_t addrs, params_t params);
 params_t paramsCreate();
 
 /** @ doxygen end group definition */
