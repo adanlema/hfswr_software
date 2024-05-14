@@ -26,6 +26,8 @@ client_t clientCreate(uint32_t port, char * ip);
 int      clientConnect(client_t client);
 void     clientDisconnect(client_t client);
 void *   clientGetDirSock(client_t client);
+char *   clientGetIP(client_t client);
+int      clientGetPort(client_t client);
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

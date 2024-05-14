@@ -14,8 +14,9 @@
 #include <sys/types.h>
 
 #include "al_client.h"
-/*==================[macros and definitions]=================================*/
 
+/*==================[macros and definitions]=================================*/
+#define CANT_CLIENT 10
 /*==================[internal data declaration]==============================*/
 struct client_s {
     char               ip[20];
@@ -26,7 +27,8 @@ struct client_s {
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
-static struct client_s cliente = {0};
+static uint8_t         ocupacion_cl         = 0;
+static struct client_s cliente[CANT_CLIENT] = {0};
 
 /*==================[external data definition]===============================*/
 
@@ -42,15 +44,22 @@ static int client_create_socket() {
 
 /*==================[external functions definition]==========================*/
 client_t clientCreate(uint32_t port, char * ip) {
-    cliente.sock = client_create_socket();
-    cliente.port = port;
-    strcpy(cliente.ip, ip);
+    uint8_t posicion = 0;
+    if (ocupacion_cl < CANT_CLIENT) {
+        posicion = ocupacion_cl;
+        ocupacion_cl++;
+    } else {
+        return NULL;
+    }
+    cliente[posicion].sock = client_create_socket();
+    cliente[posicion].port = port;
+    strcpy(cliente[posicion].ip, ip);
 
-    memset(&cliente.addr, '\0', sizeof(cliente.addr));
-    cliente.addr.sin_family      = AF_INET;
-    cliente.addr.sin_port        = htons(port);
-    cliente.addr.sin_addr.s_addr = inet_addr(ip);
-    return &cliente;
+    memset(&cliente[posicion].addr, '\0', sizeof(cliente[posicion].addr));
+    cliente[posicion].addr.sin_family      = AF_INET;
+    cliente[posicion].addr.sin_port        = htons(port);
+    cliente[posicion].addr.sin_addr.s_addr = inet_addr(ip);
+    return &cliente[posicion];
 }
 
 int clientConnect(client_t client) {
@@ -68,6 +77,12 @@ void clientDisconnect(client_t client) {
 
 void * clientGetDirSock(client_t client) {
     return &client->sock;
+}
+char * clientGetIP(client_t client) {
+    return client->ip;
+}
+int clientGetPort(client_t client) {
+    return client->port;
 }
 
 /** @ doxygen end group definition */

@@ -20,14 +20,16 @@
 #include "al_client.h"
 
 /*==================[macros and definitions]=================================*/
-
+#define CANT_PARAMS 10
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
 static void paramsCodeManager(params_t config, const char * code);
 /*==================[internal data definition]===============================*/
-static struct params_s      parametros = {0};
-static struct thread_args_s thread     = {0};
+static uint8_t              ocupacion_pr            = 0;
+static uint8_t              ocupacion_th            = 0;
+static struct params_s      parametros[CANT_PARAMS] = {0};
+static struct thread_args_s thread[CANT_PARAMS]     = {0};
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -50,6 +52,16 @@ static void paramsCodeManager(params_t config, const char * code) {
     printf("ERROR: Codigo invalido\n");
 }
 /*==================[external functions definition]==========================*/
+params_t paramsCreate() {
+    uint8_t posicion = 0;
+    if (ocupacion_pr < CANT_PARAMS) {
+        posicion = ocupacion_pr;
+        ocupacion_pr++;
+    } else {
+        return NULL;
+    }
+    return &parametros[posicion];
+}
 
 int paramsStrtoJson(char * str, params_t params) {
     struct json_object * parsed_json;
@@ -119,22 +131,27 @@ int paramsUpdate(char * str, params_t params) {
     }
 }
 
-params_t paramsCreate() {
-    return &parametros;
-}
 thread_args_t threadCreate(int * sock, params_t params) {
+    uint8_t posicion = 0;
+    if (ocupacion_th < CANT_PARAMS) {
+        posicion = ocupacion_th;
+        ocupacion_th++;
+    } else {
+        return NULL;
+    }
+
     char *r_buff, *s_buff;
     r_buff = malloc(BUFTCP_SIZE);
     s_buff = malloc(BUFTCP_SIZE);
     memset(r_buff, 0, BUFTCP_SIZE);
     memset(s_buff, 0, BUFTCP_SIZE);
 
-    thread.soc    = sock;
-    thread.r_buff = r_buff;
-    thread.s_buff = s_buff;
-    thread.params = params;
+    thread[posicion].soc    = sock;
+    thread[posicion].r_buff = r_buff;
+    thread[posicion].s_buff = s_buff;
+    thread[posicion].params = params;
 
-    return &thread;
+    return &thread[posicion];
 }
 
 void threadFinalize(thread_args_t thr) {

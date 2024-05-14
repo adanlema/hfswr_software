@@ -20,7 +20,7 @@
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-
+pthread_t thread_recv, thread_send;
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
@@ -67,43 +67,73 @@ void * send_msg(void * args) {
         }
     }
 }
-/*==================[external functions definition]==========================*/
-
-int main() {
+void conection_server(client_t client, thread_args_t th) {
     int err;
-
-    client_t client_tx = clientCreate(PORT_TX, IP_TX);
-    if (clientConnect(client_tx) != 0) {
+    if (clientConnect(client) != 0) {
         printf("\n\nError al conectar el cliente...\n");
-        return 1;
+        return;
     }
-    printf("\n\n[+] Cliente conectado con exito...\n[+] IP: %s\n[+] PORT: %u\n[+] Escriba EXIT "
+    printf("\n\n[+] Cliente conectado con exito...\n[+] IP: %s\n[+] PORT: %u\n[+] Escriba "
+           "EXIT "
            "para salir\n\n",
-           IP_TX, PORT_TX);
-    params_t      usr_params_p = paramsCreate();
-    thread_args_t thread_tx    = threadCreate(clientGetDirSock(client_tx), usr_params_p);
+           clientGetIP(client), clientGetPort(client));
 
-    pthread_t thread_recv, thread_send;
-    err = pthread_create(&thread_recv, NULL, recive_msg, thread_tx);
+    err = pthread_create(&thread_recv, NULL, recive_msg, th);
     if (err) {
         printf("An error occured: %d\n", err);
-        return 1;
+        return;
     }
-    err = pthread_create(&thread_send, NULL, send_msg, thread_tx);
+    err = pthread_create(&thread_send, NULL, send_msg, th);
     if (err) {
         printf("An error occured: %d\n", err);
-        return 1;
+        return;
     }
-
     while (1) {
-        if (!strcmp(thread_tx->s_buff, "EXIT")) {
+        if (!strcmp(th->s_buff, "EXIT")) {
             printf("Cerrando conexion...\n");
-            clientDisconnect(client_tx);
-            threadFinalize(thread_tx);
+            clientDisconnect(client);
             pthread_cancel(thread_recv);
             pthread_cancel(thread_send);
             printf("Conexion cerrada con exito...\n");
             break;
+        }
+    }
+}
+
+/*==================[external functions definition]==========================*/
+
+int main() {
+    int eleccion;
+
+    client_t client_tx = clientCreate(PORT_TX, IP_TX);
+    client_t client_rx = clientCreate(PORT_RX, IP_RX);
+
+    params_t      params_tx = paramsCreate();
+    thread_args_t thread_tx = threadCreate(clientGetDirSock(client_tx), params_tx);
+    params_t      params_rx = paramsCreate();
+    thread_args_t thread_rx = threadCreate(clientGetDirSock(client_rx), params_rx);
+
+    while (1) {
+        printf("\n\n Seleccione numericamente el comando que desea realizar:\n\
+        [1] Conectar TX\n\
+        [2] Conectar RX\n\
+        [3] Salir\n\n");
+        scanf("%d", &eleccion);
+        switch (eleccion) {
+            case 1:
+                conection_server(client_tx, thread_tx);
+                break;
+            case 2:
+                conection_server(client_rx, thread_rx);
+                break;
+            case 3:
+                printf("Saliendo del programa...\n\n");
+                threadFinalize(thread_tx);
+                threadFinalize(thread_rx);
+                return 0;
+            default:
+                printf("Comando invalido, vuelve a intentarlo...\n");
+                break;
         }
     }
 
