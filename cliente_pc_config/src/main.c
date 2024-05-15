@@ -22,7 +22,9 @@
 /*==================[internal data declaration]==============================*/
 pthread_t thread_recv, thread_send;
 /*==================[internal functions declaration]=========================*/
-
+void * recive_msg(void * args);
+void * send_msg(void * args);
+void   conection_server(client_t client, thread_args_t th);
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/

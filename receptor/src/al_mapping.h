@@ -7,8 +7,10 @@
 #include <stdint.h>
 /*==================[macros]=================================================*/
 #define FPGA_MEM1         0x40000000
-#define FPGA_MEM2         0x42000000
-#define FPGA_REG          2048
+#define FPGA_MEM2         0x40004000
+#define FPGA_MEM_CTRL     0x40008000
+#define FPGA_REG          4096
+#define FPGA_MEM_CTRL_REG 6
 #define BUFFER_SIZE       FPGA_REG * sizeof(int32_t)
 #define FPGA_OFFSET_VALID 0
 /*==================[typedef]================================================*/
