@@ -1,15 +1,22 @@
-/* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
+/* Copyright 2024, Adan Lema <adanlema@hotmail.com> & Carcamo Mariano <mgcarcamo98@gmail.com> */
 
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <signal.h>
+
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#include "al_client.h"
 #include "al_mapping.h"
-
+#include "al_server.h"
+#include "log_manager.h"
 /*==================[macros and definitions]=================================*/
 #define PHASE_CARRIER  0
 #define ADDR_RESET     1
@@ -17,114 +24,146 @@
 #define LAST_ADDR      3
 #define BUFFER_TO_READ 4
 #define LOST_DATA      5
+
+#define EXT_ERR_CREATE_SERVER  1
+#define EXT_ERR_CLIENT_CONNECT 2
+#define EXT_ERR_LISTENING_SOCK 3
 /*==================[internal data declaration]==============================*/
-
+static int     server_sock, client_sock;
+static addrs_t addr_buff_1 = NULL;
+static addrs_t addr_buff_2 = NULL;
+static addrs_t addr_ctrl_regs = NULL;
 /*==================[internal functions declaration]=========================*/
-
+static void MySignalHandler(int sig);
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
+static void MySignalHandler(int sig) {
+    log_add("[-]Cerrando el programa");
+    mappingFinalize(addr_buff_1, FPGA_REG);
+    mappingFinalize(addr_buff_2, FPGA_REG);
+    mappingFinalize(addr_ctrl_regs, FPGA_REG);
+    close(server_sock);
+    close(client_sock);
+    log_add("[SUCCESS]Programa cerrado con exito");
+    exit(EXIT_SUCCESS);
+}
+
+static void serverClientManagement(int confd) {
+    char *s_buff;
+    int buff_leido = 0;
+    int i = 0;
+
+    s_buff = malloc(BUFTCP_SIZE);
+    if (s_buff == NULL) {
+        log_add("[ERROR]Error al reservar memoria");
+        exit(EXIT_FAILURE);
+    }
+    memset(s_buff, 0, BUFTCP_SIZE);
+
+    while(i<5){
+        if(buff_leido != addr_ctrl_regs[BUFFER_TO_READ]){
+            buff_leido = addr_ctrl_regs[BUFFER_TO_READ];
+            switch (addr_ctrl_regs[BUFFER_TO_READ]) {
+                case 1:
+                    addr_ctrl_regs[WRITE_EN] = (uint32_t)(0xFFFFFFFE & (addr_ctrl_regs[WRITE_EN]));
+                    sprintf(s_buff,"\nDatos buffer uno:");
+                    send(confd, s_buff, BUFTCP_SIZE, 0);
+                    for (addrs_t p = addr_buff_1; p < (addr_buff_1 + 200); ++p) {
+                    // for (addrs_t p = addr_buff_1; p < (addr_buff_1 + (addr_ctrl_regs[LAST_ADDR] == 0xFFFFFFFF)? 4095 : addr_ctrl_regs[LAST_ADDR]); ++p) {
+                        sprintf(s_buff, "\n%d", (int16_t)(0xFFFF & (*p)));
+                        send(confd, s_buff, BUFTCP_SIZE, 0);
+                    }
+                    if (addr_ctrl_regs[LOST_DATA]) {
+                        sprintf(s_buff,"\nSe Perdieron datos!!");
+                        send(confd, s_buff, BUFTCP_SIZE, 0);
+                    }
+                    addr_ctrl_regs[WRITE_EN] = (uint32_t)(0x1 | (addr_ctrl_regs[WRITE_EN]));
+                    i++;
+                    break;
+                case 2:
+                    addr_ctrl_regs[WRITE_EN] = (uint32_t)(0xFFFFFFFD & (addr_ctrl_regs[WRITE_EN]));
+                    sprintf(s_buff, "\nDatos buffer dos:");
+                    send(confd, s_buff, BUFTCP_SIZE, 0);
+                    // for (addrs_t p = addr_buff_2; p < (addr_buff_2 + (addr_ctrl_regs[LAST_ADDR] == 0xFFFFFFFF)? 4095 : addr_ctrl_regs[LAST_ADDR]); ++p) {
+                    for (addrs_t p = addr_buff_2; p < (addr_buff_2 + 200); ++p) {
+                        sprintf(s_buff, "\n%d", (int16_t)(0xFFFF & (*p)));
+                        send(confd, s_buff, BUFTCP_SIZE, 0);
+                    }
+                    if (addr_ctrl_regs[LOST_DATA]) {
+                        sprintf(s_buff, "\nSe Perdieron datos!!");
+                        send(confd, s_buff, BUFTCP_SIZE, 0);
+                    }
+                    addr_ctrl_regs[WRITE_EN] = (uint32_t)(0x2 | (addr_ctrl_regs[WRITE_EN]));
+                    i++;
+                    break;
+                default:
+                    break;
+            };
+        }
+    }
+
+    free(s_buff);
+}
 
 /*==================[external functions definition]==========================*/
 int main() {
+    int n;
+    struct sockaddr_in client;
 
-    addrs_t addr_mem1 = mapping_initialize(FPGA_MEM1, FPGA_REG);
-    if (addr_mem1 == NULL) {
+    log_delete();
+
+    // Mapeo de memoria...
+    addrs_t addr_buff_1 = mapping_initialize(FPGA_BUFF1, FPGA_REG);
+    if (addr_buff_1 == NULL) {
         return -1;
     }
-    addrs_t addr_mem2 = mapping_initialize(FPGA_MEM2, FPGA_REG);
-    if (addr_mem2 == NULL) {
+    addrs_t addr_buff_2 = mapping_initialize(FPGA_BUFF2, FPGA_REG);
+    if (addr_buff_2 == NULL) {
         return -1;
     }
-    addrs_t ctrl_regs = mapping_initialize(FPGA_MEM_CTRL, FPGA_MEM_CTRL_REG);
-    if (addr_mem2 == NULL) {
+    addrs_t addr_ctrl_regs = mapping_initialize(FPGA_CTRL, FPGA_MEM_CTRL_REG);
+    if (addr_ctrl_regs == NULL) {
         return -1;
     }
-    printf("\n\n\nMapeo de memoria realizo con exito...\n");
-    // Frecuencia de portadora 10 MHz
-    ctrl_regs[PHASE_CARRIER] = 0x14d5555c;
-    ctrl_regs[ADDR_RESET]    = 1;
-    ctrl_regs[WRITE_EN]      = 3;
+    log_add("[SUCCESS]Mapeo de memoria realizo con exito");
 
-    uint8_t bandera    = 0;
-    int16_t real       = 0;
-    uint8_t mem1_leido = 0;
-    uint8_t mem2_leido = 0;
+    // Creacion del server...
+    server_sock = serverInit();
+    if (server_sock < 0) {
+        log_add("[ERROR]Error al crear el server");
+        exit(EXT_ERR_CREATE_SERVER);
+    }
+    if (listen(server_sock, 1) == -1) {
+        log_add("[ERROR]Error al poner en escucha el socket");
+        exit(EXT_ERR_LISTENING_SOCK);
+    }
 
-    while (bandera < 5) {
-        // printf("\n\nBuffer a leer: %u\n",ctrl_regs[BUFFER_TO_READ]);
-        // printf("Se perdio datos %u\n",ctrl_regs[LOST_DATA]);
-        // printf("Ultima direccion: %u\n",ctrl_regs[LAST_ADDR]);
-        // printf("Phase:%d\nRESET:%d\nWRITE_EN:%d\n",ctrl_regs[PHASE_CARRIER],
-        // ctrl_regs[ADDR_RESET], ctrl_regs[WRITE_EN]); printf("dato: %d\n",addr_mem1[0]);
+    // Manejo de señales de linux...
+    signal(SIGABRT, MySignalHandler);
+    signal(SIGINT,  MySignalHandler);
+    signal(SIGTERM, MySignalHandler);
+    signal(SIGKILL, MySignalHandler);
 
-        switch (ctrl_regs[BUFFER_TO_READ]) {
-            case 1:
-                // Agregar la logica para limitar la lectura a LAST_ADDR
-                if (!mem1_leido) {
-                    ctrl_regs[WRITE_EN] = (uint32_t)(0xFFFFFFFE & (ctrl_regs[WRITE_EN]));
-                    printf("\n\nDatos buffer uno...\n");
-                    for (addrs_t p = addr_mem1; p < (addr_mem1 + 200); ++p) {
-                        real = (int16_t)(0xFFFF & (*p));
-                        printf("%d\n", real);
-                    }
-                    if (ctrl_regs[LOST_DATA]) {
-                        printf("\n\nSe Perdieron datos...\n");
-                    }
-                    ctrl_regs[WRITE_EN] = (uint32_t)(0x1 | (ctrl_regs[WRITE_EN]));
-                    bandera++;
-                    mem1_leido = 1;
-                    mem2_leido = 0;
-                }
-                break;
-            case 2:
-                // Agregar la logica para limitar la lectura a LAST_ADDR
-                if (!mem2_leido) {
-                    ctrl_regs[WRITE_EN] = (uint32_t)(0xFFFFFFFD & (ctrl_regs[WRITE_EN]));
-                    printf("\n\nDatos buffer dos...\n");
-                    for (addrs_t p = addr_mem2; p < (addr_mem2 + 200); ++p) {
-                        real = (int16_t)(0xFFFF & (*p));
-                        printf("%d\n", real);
-                    }
-                    if (ctrl_regs[LOST_DATA]) {
-                        printf("\n\nSe Perdieron datos...\n");
-                    }
-                    ctrl_regs[WRITE_EN] = (uint32_t)(0x2 | (ctrl_regs[WRITE_EN]));
-                    bandera++;
-                    mem1_leido = 0;
-                    mem2_leido = 1;
-                }
-                break;
-            default:
-                //              bandera++;
-                break;
-        };
+    //Valores iniciales
+    // addr_ctrl_regs[PHASE_CARRIER] = 0x14d5555c; // Frecuencia de portadora en 10 MHz - No deberia tocar esto desde aqui!!! 
+    addr_ctrl_regs[ADDR_RESET]    = 1;
+    addr_ctrl_regs[WRITE_EN]      = 3;
 
-        // if (addr_mem1[FPGA_OFFSET_VALID] == 1) {
-        //     addr_mem1[FPGA_OFFSET_VALID] = 0;
-        //     printf("\n\nDatos buffer uno...\n");
-        //     for (addrs_t p = addr_mem1; p < (addr_mem1 + 200); ++p) {
-        //         real = (int16_t)(0xFFFF * (*p));
-        //         printf("%d\n", real);
-        //     }
-        //     bandera++;
-        // }
-        // if (addr_mem2[FPGA_OFFSET_VALID] == 1) {
-        //     addr_mem2[FPGA_OFFSET_VALID] = 0;
-        //     printf("\n\nDatos buffer dos...\n");
-        //     for (addrs_t p = addr_mem2; p < (addr_mem2 + 200); ++p) {
-        //         real = (int16_t)(0xFFFF * (*p));
-        //         printf("%d\n", real);
-        //     }
-        //     bandera++;
-        // }
-    };
+    while (1) {
+        // Conexion con el cliente...
+        n = sizeof(client);
+        client_sock = accept(server_sock, (struct sockaddr *)&client, &n);
+        if (client_sock < 0) {
+            log_add("[ERROR]Error al conectar el cliente");
+            continue;
+        }
+        serverClientManagement(client_sock);
+        close(client_sock);
+    }
 
-    mapping_finalize(addr_mem1, FPGA_REG);
-    mapping_finalize(addr_mem2, FPGA_REG);
-    mapping_finalize(ctrl_regs, FPGA_MEM_CTRL_REG);
     return 0;
 }
 /** @ doxygen end group definition */

@@ -4,9 +4,9 @@ OBJ_DIR = $(OUT_DIR)/obj
 BIN_DIR = $(OUT_DIR)/bin
 
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o,$(SRC_FILES))
+OBJ_FILES = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
-.DEFAULT_GOAL := run
+.DEFAULT_GOAL := all
 
 .PHONY: clean run
 
@@ -29,6 +29,5 @@ all: $(BIN_DIR)/app.elf
 
 clean:
 	rm -rf $(OUT_DIR)
-
-run: clean all
+run: $(BIN_DIR)/app.elf
 	$(BIN_DIR)/app.elf
