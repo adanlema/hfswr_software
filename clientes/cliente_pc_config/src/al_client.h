@@ -7,16 +7,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <netinet/in.h>
 /*==================[macros]=================================================*/
-#define PORT_TX 5566
-#define IP_TX   "10.0.255.71"
-#define PORT_RX 2000
-#define IP_RX   "10.0.255.0"
+#define PORT_TX  5566
+#define PORT_RX1 2000
+#define IP_TX    "10.0.255.71"
+#define IP_RX1   "10.0.255.0"
 
 #define BUFTCP_SIZE 1024
-#define SIZE_CODE   100
 /*==================[typedef]================================================*/
 typedef struct client_s * client_t;
 /*==================[external data declaration]==============================*/
@@ -25,9 +22,11 @@ typedef struct client_s * client_t;
 client_t clientCreate(uint32_t port, char * ip);
 int      clientConnect(client_t client);
 void     clientDisconnect(client_t client);
-void *   clientGetDirSock(client_t client);
-char *   clientGetIP(client_t client);
+void     clientSend(client_t client, char * buffer, uint32_t size);
+void     clientRecive(client_t client, char * buffer, uint32_t size);
 int      clientGetPort(client_t client);
+int      clientGetSock(client_t client);
+char *   clientGetIP(client_t client);
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

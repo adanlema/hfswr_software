@@ -75,8 +75,8 @@ void clientDisconnect(client_t client) {
     printf("Desconexion del cliente del server...\n");
 }
 
-void * clientGetDirSock(client_t client) {
-    return &client->sock;
+int clientGetSock(client_t client) {
+    return client->sock;
 }
 char * clientGetIP(client_t client) {
     return client->ip;
@@ -85,6 +85,14 @@ int clientGetPort(client_t client) {
     return client->port;
 }
 
+void clientRecive(client_t client, char * buffer, uint32_t size) {
+    memset(buffer, 0, size);
+    recv(client->sock, buffer, size, 0);
+    printf("\n[server] %s", buffer);
+}
+void clientSend(client_t client, char * buffer, uint32_t size) {
+    send(client->sock, buffer, size, 0);
+}
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
