@@ -8,10 +8,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 /*==================[macros]=================================================*/
+#define IP_LOCAL "127.0.0.1"
+
 #define PORT_TX  5566
-#define PORT_RX1 2000
-#define IP_TX    "10.0.255.71"
-#define IP_RX1   "10.0.255.0"
+#define PORT_RX1 2011
+#define PORT_RX2 2027
+#define PORT_RX3 2039
+#define PORT_RX4 2063
+#define PORT_RX5 2081
+#define PORT_RX6 2087
+#define PORT_RX7 2099
 
 #define BUFTCP_SIZE 1024
 /*==================[typedef]================================================*/
