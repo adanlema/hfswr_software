@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -16,24 +17,23 @@
 #include "al_client.h"
 
 /*==================[macros and definitions]=================================*/
-#define CANT_CLIENT 10
+#define CANTIDAD_CLIENTES 10
 /*==================[internal data declaration]==============================*/
 struct client_s {
-    char               ip[20];
-    uint32_t           port;
+    char               ip[IP_SIZE];
+    bool               ocupado;
     int                sock;
+    uint32_t           port;
     struct sockaddr_in addr;
 };
 /*==================[internal functions declaration]=========================*/
-
+static int clientCreateSocket();
 /*==================[internal data definition]===============================*/
-static uint8_t         ocupacion_cl         = 0;
-static struct client_s cliente[CANT_CLIENT] = {0};
-
+static struct client_s cliente[CANTIDAD_CLIENTES] = {0};
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-static int client_create_socket() {
+static int clientCreateSocket() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("[-]Socket error:");
@@ -41,30 +41,41 @@ static int client_create_socket() {
     }
     return sock;
 }
-
 /*==================[external functions definition]==========================*/
 client_t clientCreate(uint32_t port, char * ip) {
     uint8_t posicion = 0;
-    if (ocupacion_cl < CANT_CLIENT) {
-        posicion = ocupacion_cl;
-        ocupacion_cl++;
-    } else {
+    int     i;
+    for (i = 0; (i < CANTIDAD_CLIENTES) && (posicion == 0); i++) {
+        if (cliente[i].ocupado == false) {
+            posicion = i;
+            break;
+        }
+    }
+    if (posicion == 0 && i == CANTIDAD_CLIENTES) {
+        printf("No hay espacio disponible para más clientes.\n");
         return NULL;
     }
-    cliente[posicion].sock = client_create_socket();
-    cliente[posicion].port = port;
-    strcpy(cliente[posicion].ip, ip);
 
-    memset(&cliente[posicion].addr, '\0', sizeof(cliente[posicion].addr));
-    cliente[posicion].addr.sin_family      = AF_INET;
-    cliente[posicion].addr.sin_port        = htons(port);
-    cliente[posicion].addr.sin_addr.s_addr = inet_addr(ip);
-    return &cliente[posicion];
+    client_t AL = &cliente[posicion];
+    AL->sock    = clientCreateSocket();
+    AL->port    = port;
+    AL->ocupado = true;
+    strcpy(AL->ip, ip);
+
+    memset(&AL->addr, '\0', sizeof(AL->addr));
+    AL->addr.sin_family      = AF_INET;
+    AL->addr.sin_port        = htons(port);
+    AL->addr.sin_addr.s_addr = inet_addr(ip);
+    return AL;
 }
 
 int clientConnect(client_t client) {
+    client->sock = clientCreateSocket();
+    if (client->sock < 0) {
+        return -1;
+    }
     if (connect(client->sock, (struct sockaddr *)&client->addr, sizeof(client->addr)) != 0) {
-        perror("Error al conectar el cliente con el servidor: ");
+        perror("Error al conectar el cliente con el servidor");
         return -1;
     }
     return 0;
@@ -72,15 +83,22 @@ int clientConnect(client_t client) {
 
 void clientDisconnect(client_t client) {
     close(client->sock);
+    client->sock = -1;
     printf("Desconexion del cliente del server...\n");
 }
 
 int clientGetSock(client_t client) {
     return client->sock;
 }
-char * clientGetIP(client_t client) {
-    return client->ip;
+
+void clientGetIP(client_t client, char * destino) {
+    if (destino == NULL) {
+        printf("Error: buffer destino no es válido...\n");
+        return;
+    }
+    strcpy(destino, client->ip);
 }
+
 int clientGetPort(client_t client) {
     return client->port;
 }

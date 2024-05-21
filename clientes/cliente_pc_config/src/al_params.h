@@ -33,13 +33,9 @@ typedef struct thread_args_s {
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-
-int           paramsStrtoJson(char * str, params_t params);
-int           paramsUpdate(char * str, params_t params);
-params_t      paramsCreate();
-thread_args_t threadCreate(int * sock, params_t params);
-void          threadFinalize(thread_args_t thr);
-
+int      paramsStrtoJson(char * str, params_t params);
+int      paramsUpdate(char * str, params_t params);
+params_t paramsCreate();
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

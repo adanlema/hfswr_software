@@ -39,6 +39,7 @@ static void txConfig(client_t client, params_t params) {
     paramsUpdate(buffer, params);
 
     while (1) {
+        printf("[cliente] ");
         memset(buffer, 0, BUFTCP_SIZE);
         scanf("%s", buffer);
         if (!strcmp(buffer, "EXIT")) {
@@ -97,7 +98,7 @@ int main() {
         [2] Encender/Apagar todos los receptores\n\
         [3] Encender un receptor en particular\n\
         [4] Apagar un receptor en particular\n\
-        [5] Salir\n\n");
+        [5] Salir\n\n-> ");
         scanf("%d", &eleccion);
         switch (eleccion) {
             case 1:
@@ -110,7 +111,7 @@ int main() {
             case 2:
                 printf("\n      Que desea hacer:\n\
                 [1] Encender todos los receptores\n\
-                [2] Apagar todos los receptores\n");
+                [2] Apagar todos los receptores\n-> ");
                 scanf("%d", &eleccion2);
                 switch (eleccion2) {
                     case 1:
@@ -124,10 +125,10 @@ int main() {
                 }
                 break;
             case 3:
-                prinf("Completar proximamente...\n");
+                printf("Completar proximamente...\n");
                 break;
             case 4:
-                prinf("Completar proximamente...\n");
+                printf("Completar proximamente...\n");
                 break;
             case 5:
                 printf("Saliendo del programa...\n\n");
