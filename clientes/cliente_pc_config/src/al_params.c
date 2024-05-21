@@ -8,16 +8,8 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <json-c/json.h>
-#include <pthread.h>
-
 #include "al_params.h"
-#include "al_client.h"
 
 /*==================[macros and definitions]=================================*/
 #define CANT_PARAMS 10

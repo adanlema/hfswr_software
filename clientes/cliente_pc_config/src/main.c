@@ -26,7 +26,6 @@ static void rxOnOff(client_t client, uint32_t on_off);
 static void txConfig(client_t client, params_t params) {
     memset(buffer, 0, BUFTCP_SIZE);
     if (clientConnect(client) != 0) {
-        printf("\n\nError al conectar el cliente...\n");
         return;
     }
     printf("\n\n[+] Cliente conectado con exito...\n\
@@ -63,7 +62,6 @@ static void txConfig(client_t client, params_t params) {
 }
 static void rxUpdate(client_t client) {
     if (clientConnect(client) != 0) {
-        printf("\n\nError al conectar el cliente...\n");
         return;
     }
     memset(buffer, 0, BUFTCP_SIZE);
@@ -73,7 +71,6 @@ static void rxUpdate(client_t client) {
 }
 static void rxOnOff(client_t client, uint32_t on_off) {
     if (clientConnect(client) != 0) {
-        printf("\n\nError al conectar el cliente...\n");
         return;
     }
     memset(buffer, 0, BUFTCP_SIZE);
