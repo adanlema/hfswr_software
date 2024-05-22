@@ -18,6 +18,7 @@
 
 /*==================[macros and definitions]=================================*/
 #define CANTIDAD_CLIENTES 10
+#define IP_SIZE           20
 /*==================[internal data declaration]==============================*/
 struct client_s {
     char               ip[IP_SIZE];

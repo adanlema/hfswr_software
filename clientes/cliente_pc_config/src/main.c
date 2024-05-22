@@ -11,6 +11,19 @@
 /*==================[macros and definitions]=================================*/
 #define RX_ON  1
 #define RX_OFF 0
+
+#define IP_LOCAL    "127.0.0.1"
+#define BUFTCP_SIZE 1024
+
+#define PORT_TX  2003
+#define PORT_RX1 2011
+#define PORT_RX2 2027
+#define PORT_RX3 2039
+#define PORT_RX4 2063
+#define PORT_RX5 2081
+#define PORT_RX6 2087
+#define PORT_RX7 2099
+
 /*==================[internal data declaration]==============================*/
 static uint32_t freq_rx = {0};
 static char     buffer[BUFTCP_SIZE];

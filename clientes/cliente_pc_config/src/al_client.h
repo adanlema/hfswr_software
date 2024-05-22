@@ -8,19 +8,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 /*==================[macros]=================================================*/
-#define IP_LOCAL "127.0.0.1"
 
-#define PORT_TX  5566
-#define PORT_RX1 2011
-#define PORT_RX2 2027
-#define PORT_RX3 2039
-#define PORT_RX4 2063
-#define PORT_RX5 2081
-#define PORT_RX6 2087
-#define PORT_RX7 2099
-
-#define BUFTCP_SIZE 1024
-#define IP_SIZE     20
 /*==================[typedef]================================================*/
 typedef struct client_s * client_t;
 /*==================[external data declaration]==============================*/

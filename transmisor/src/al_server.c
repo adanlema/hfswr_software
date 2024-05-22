@@ -5,27 +5,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <math.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <json-c/json.h>
 
 #include "al_server.h"
-#include "al_mapping.h"
-#include "al_params.h"
 #include "log_manager.h"
-/*==================[macros and definitions]=================================*/
 
+/*==================[macros and definitions]=================================*/
+#define IP_SIZE 20
 /*==================[internal data declaration]==============================*/
-char log_buff[256];
+struct server_s {
+    char               ip[IP_SIZE];
+    int                sock;
+    uint32_t           port;
+    struct sockaddr_in addr;
+    struct sockaddr_in client;
+    int                client_sock;
+};
 /*==================[internal functions declaration]=========================*/
 static int serverCreateSocket();
-static int serverConnect(int sock);
 /*==================[internal data definition]===============================*/
-
+char                   log_buff[256];
+static struct server_s servidor = {0};
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -35,93 +40,89 @@ static int serverCreateSocket() {
         log_add("[ERROR]Error al crear el socket.");
         return -1;
     }
-    log_add("[SUCCESS]TCP socket creado con exito");
+    log_add("[SUCCESS]TCP socket server creado con exito");
     return sock;
 }
-static int serverConnect(int sock) {
-    struct sockaddr_in server;
-    memset(&server, '\0', sizeof(server));
-    server.sin_family      = AF_INET;
-    server.sin_port        = htons(PORT_TX);
-    server.sin_addr.s_addr = inet_addr(IP_TX);
+/*==================[external functions definition]==========================*/
+server_t serverCreate(uint32_t port, char * ip) {
+    server_t AL = &servidor;
+    AL->sock    = serverCreateSocket();
+    if (AL->sock == -1) {
+        return NULL;
+    }
 
-    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+    AL->port = port;
+    strcpy(AL->ip, ip);
+    memset(&AL->addr, '\0', sizeof(AL->addr));
+    AL->addr.sin_family      = AF_INET;
+    AL->addr.sin_port        = htons(port);
+    AL->addr.sin_addr.s_addr = inet_addr(ip);
+    return AL;
+}
+
+int serverConnect(server_t server) {
+    server->sock = serverCreateSocket();
+    if (server->sock < 0) {
+        return -1;
+    }
+
+    if (bind(server->sock, (struct sockaddr *)&server->addr, sizeof(server->addr)) != 0) {
         log_add("[ERROR]Error de vinculacion (Bind error)");
         return -1;
     }
     log_add("[SUCCESS]Servidor creado con exito");
-    sprintf(log_buff, "[+]IP: %s", IP_TX);
+    sprintf(log_buff, "[+]IP: %s", server->ip);
     log_add(log_buff);
-    sprintf(log_buff, "[+]Vinculado al puerto numero: %d", PORT_TX);
+    sprintf(log_buff, "[+]Vinculado al puerto numero: %u", server->port);
     log_add(log_buff);
     return 0;
 }
-
-/*==================[external functions definition]==========================*/
-int serverInit() {
-    int sock = serverCreateSocket();
-    if (sock == -1) {
-        return -1;
-    }
-    if (serverConnect(sock) != 0) {
-        return -1;
-    }
-    return sock;
+void serverDisconnect(server_t server) {
+    close(server->sock);
+    server->sock = -1;
+    log_add("[SUCCESS]Servidor desconectado...");
 }
 
-void serverClientManagement(int confd, params_t params, addrs_t addr_fpga) {
-    // void serverClientManagement(int confd, params_s * params) {
-    char *r_buff, *s_buff;
-
-    r_buff = malloc(BUFTCP_SIZE);
-    s_buff = malloc(BUFTCP_SIZE);
-
-    if (r_buff == NULL || s_buff == NULL) {
-        log_add("[ERROR]Error al reservar memoria.");
-        exit(EXIT_FAILURE);
+int serverAccept(server_t server) {
+    int n               = sizeof(server->client);
+    server->client_sock = accept(server->sock, (struct sockaddr *)&server->client, &n);
+    if (server->client_sock < 0) {
+        log_add("[ERROR]Error al conectar el cliente.");
+        return -1;
     }
+    return 0;
+}
+void serverCloseClient(server_t server) {
+    close(server->client_sock);
+    server->client_sock = -1;
+}
 
-    memset(r_buff, 0, BUFTCP_SIZE);
-    memset(s_buff, 0, BUFTCP_SIZE);
+int serverListen(server_t server, int n) {
+    return listen(server->sock, n);
+}
 
-    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}");
-    send(confd, s_buff, BUFTCP_SIZE, 0);
+void serverSend(server_t server, char * buffer, uint32_t size) {
+    send(server->client_sock, buffer, size, 0);
+}
 
-    memset(s_buff, 0, BUFTCP_SIZE);
-    sprintf(s_buff,
-            "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, \"start\":%s}\n",
-            params->prf, params->freq, params->ab, params->code, params->code_num,
-            params->start ? "true" : "false");
-    send(confd, s_buff, BUFTCP_SIZE, 0);
+int serverRecive(server_t server, char * buffer, uint32_t size) {
+    return recv(server->client_sock, buffer, size, 0);
+}
 
-    while (1) {
-        if (!(recv(confd, r_buff, BUFTCP_SIZE, 0) == 0)) {
-            if (paramsStrtoJson(r_buff, params) == -1) {
-                memset(s_buff, 0, BUFTCP_SIZE);
-                strcpy(s_buff, "{\"error\":\"Formato JSON no identificado\"}\n");
-                send(confd, s_buff, BUFTCP_SIZE, 0);
-            } else {
-                paramsSetConfig(addr_fpga, params);
-                paramsSaveConfig(params);
-                memset(s_buff, 0, BUFTCP_SIZE);
-                strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
-                send(confd, s_buff, BUFTCP_SIZE, 0);
-            }
-            memset(s_buff, 0, BUFTCP_SIZE);
-            sprintf(s_buff,
-                    "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, "
-                    "\"start\":%s}\n",
-                    params->prf, params->freq, params->ab, params->code, params->code_num,
-                    params->start ? "true" : "false");
-            send(confd, s_buff, BUFTCP_SIZE, 0);
-
-        } else {
-            break;
-        }
+void serverGetIP(server_t server, char * destino) {
+    if (destino == NULL) {
+        printf("Error: buffer destino no es válido...\n");
+        return;
     }
+    strcpy(destino, server->ip);
+}
 
-    free(r_buff);
-    free(s_buff);
+int serverGetPort(server_t server) {
+    return server->port;
+}
+
+int serverGetSock(server_t server) {
+    return server->sock;
 }
 
 /** @ doxygen end group definition */

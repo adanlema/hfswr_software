@@ -9,13 +9,6 @@
 #include <math.h>
 #include <signal.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <json-c/json.h>
-
 #include "al_mapping.h"
 #include "al_server.h"
 #include "al_params.h"
@@ -24,23 +17,74 @@
 #define EXT_ERR_CREATE_SERVER  1
 #define EXT_ERR_CLIENT_CONNECT 2
 #define EXT_ERR_LISTENING_SOCK 3
+
+#define PORT_SERVER 2003
+#define IP_SERVER   "0.0.0.0"
+
+#define BUFTCP_SIZE 1024
 /*==================[internal data declaration]==============================*/
-int     server_sock, client_sock;
-addrs_t addr_fpga = NULL;
+
 /*==================[internal functions declaration]=========================*/
-
+void MySignalHandler(int sig);
+void manejo_datos(server_t sv, params_t params, addrs_t addr_fpga);
 /*==================[internal data definition]===============================*/
-
+addrs_t  addr_fpga = NULL;
+server_t server    = NULL;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-void MySignalHandler(int sig);
+void manejo_datos(server_t sv, params_t params, addrs_t addr) {
+    char *r_buff, *s_buff;
+    r_buff = malloc(BUFTCP_SIZE);
+    s_buff = malloc(BUFTCP_SIZE);
+    if (r_buff == NULL || s_buff == NULL) {
+        log_add("[ERROR]Error al reservar memoria.");
+        exit(EXIT_FAILURE);
+    }
+    memset(r_buff, 0, BUFTCP_SIZE);
+    memset(s_buff, 0, BUFTCP_SIZE);
+
+    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}");
+    serverSend(sv, s_buff, BUFTCP_SIZE);
+    memset(s_buff, 0, BUFTCP_SIZE);
+    sprintf(s_buff,
+            "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, \"start\":%s}\n",
+            params->prf, params->freq, params->ab, params->code, params->code_num,
+            params->start ? "true" : "false");
+    serverSend(sv, s_buff, BUFTCP_SIZE);
+
+    while (1) {
+        memset(r_buff, 0, BUFTCP_SIZE);
+        if (!(serverRecive(server, r_buff, BUFTCP_SIZE) == 0)) {
+            if (paramsStrtoJson(r_buff, params) == -1) {
+                memset(s_buff, 0, BUFTCP_SIZE);
+                strcpy(s_buff, "{\"error\":\"Formato JSON no identificado\"}\n");
+                serverSend(server, s_buff, BUFTCP_SIZE);
+            } else {
+                paramsSetConfig(addr, params);
+                paramsSaveConfig(params);
+                memset(s_buff, 0, BUFTCP_SIZE);
+                strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
+                serverSend(server, s_buff, BUFTCP_SIZE);
+            }
+            memset(s_buff, 0, BUFTCP_SIZE);
+            sprintf(s_buff,
+                    "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, "
+                    "\"start\":%s}\n",
+                    params->prf, params->freq, params->ab, params->code, params->code_num,
+                    params->start ? "true" : "false");
+            serverSend(server, s_buff, BUFTCP_SIZE);
+
+        } else {
+            break;
+        }
+    }
+    free(r_buff);
+    free(s_buff);
+}
+
 /*==================[external functions definition]==========================*/
-
 int main() {
-    int                n;
-    struct sockaddr_in client;
-
     log_delete();
 
     // Mapeo de memoria...
@@ -52,12 +96,16 @@ int main() {
     paramsSetConfig(addr_fpga, params);
 
     // Creacion del server...
-    server_sock = serverInit();
-    if (server_sock < 0) {
+    server = serverCreate(PORT_SERVER, IP_SERVER);
+    if (server == NULL) {
         log_add("[ERROR]Error al crear el server...");
         exit(EXT_ERR_CREATE_SERVER);
     }
-    if (listen(server_sock, 2) == -1) {
+    if (serverConnect(server) != 0) {
+        log_add("[ERROR]Error al conectar el server...");
+        exit(EXT_ERR_CREATE_SERVER);
+    }
+    if (serverListen(server, 2) == -1) {
         log_add("[ERROR]Error al poner en escucha el socket.");
         exit(EXT_ERR_LISTENING_SOCK);
     }
@@ -69,28 +117,23 @@ int main() {
     signal(SIGKILL, MySignalHandler);
 
     while (1) {
-        // Conexion con el cliente...
-        n           = sizeof(client);
-        client_sock = accept(server_sock, (struct sockaddr *)&client, &n);
-        if (client_sock < 0) {
-            log_add("[ERROR]Error al conectar el cliente.");
-            exit(EXT_ERR_CLIENT_CONNECT);
+        if (serverAccept(server) != 0) {
+            continue;
         }
-        serverClientManagement(client_sock, params, addr_fpga);
-        close(client_sock);
+        manejo_datos(server, params, addr_fpga);
+        serverCloseClient(server);
     }
 
     mappingFinalize(addr_fpga, FPGA_REG);
-    close(server_sock);
-    close(client_sock);
+    serverDisconnect(server);
     return 0;
 }
 
 void MySignalHandler(int sig) {
     log_add("[-]Cerrando el programa");
     mappingFinalize(addr_fpga, FPGA_REG);
-    close(server_sock);
-    close(client_sock);
+    serverCloseClient(server);
+    serverDisconnect(server);
     log_add("[SUCCESS]Programa cerrado con exito");
     exit(EXIT_SUCCESS);
 }
