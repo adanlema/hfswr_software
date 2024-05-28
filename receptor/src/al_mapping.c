@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -16,7 +17,13 @@
 #define CANTIDAD 10
 /*==================[internal data declaration]==============================*/
 static addrs_t fpga_addr[CANTIDAD] = {0};
-static uint8_t posicion            = 0;
+
+static struct mapping_mem {
+    addrs_t  addr;
+    uint32_t size_reg;
+    bool     ocupado;
+};
+static struct mapping_mem mapping[CANTIDAD] = {0};
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
@@ -27,9 +34,16 @@ static uint8_t posicion            = 0;
 
 /*==================[external functions definition]==========================*/
 addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
-    if (posicion < 10) {
-        posicion++;
-    } else {
+    uint8_t posicion = 0;
+    int     i;
+    for (i = 0; (i < CANTIDAD) && (posicion == 0); i++) {
+        if (mapping[i].ocupado == false) {
+            posicion = i;
+            break;
+        }
+    }
+    if (posicion == 0 && i == CANTIDAD) {
+        log_add("No hay espacio disponible para más clientes.\n");
         return NULL;
     }
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -37,21 +51,29 @@ addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
         log_add("[ERROR]Error al abrir /dev/mem");
         exit(EXIT_FAILURE);
     }
-
-    fpga_addr[posicion] =
+    addrs_t fpga_addr =
         mmap(NULL, cant_reg * sizeof(int32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, addrs);
-    if (fpga_addr[posicion] == MAP_FAILED) {
+    if (fpga_addr == MAP_FAILED) {
         log_add("[ERROR]]Error al mapear los regisros de FPGA.");
         close(fd);
         exit(EXIT_FAILURE);
     }
     close(fd);
-    return fpga_addr[posicion];
+
+    mapping[posicion].addr     = fpga_addr;
+    mapping[posicion].size_reg = cant_reg;
+    mapping[posicion].ocupado  = true;
+    return fpga_addr;
 }
-void mappingFinalize(addrs_t addr, uint32_t cant_reg) {
+void mappingFinalize(addrs_t addr) {
     if (addr != NULL) {
-        munmap((void *)addr, cant_reg * sizeof(int32_t));
-        addr = NULL;
+        for (int i = 0; i < CANTIDAD; i++) {
+            if ((mapping[i].ocupado) && (mapping[i].addr == addr)) {
+                munmap((void *)addr, mapping[i].size_reg * sizeof(int32_t));
+                mapping[i] = {0};
+                break;
+            }
+        }
     }
 }
 /** @ doxygen end group definition */
