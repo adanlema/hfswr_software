@@ -16,9 +16,7 @@
 /*==================[macros and definitions]=================================*/
 #define CANTIDAD 10
 /*==================[internal data declaration]==============================*/
-static addrs_t fpga_addr[CANTIDAD] = {0};
-
-static struct mapping_mem {
+struct mapping_mem {
     addrs_t  addr;
     uint32_t size_reg;
     bool     ocupado;
@@ -44,7 +42,7 @@ addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
     }
     if (posicion == 0 && i == CANTIDAD) {
         log_add("No hay espacio disponible para más clientes.\n");
-        return NULL;
+        return (addrs_t)NULL;
     }
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
@@ -54,7 +52,7 @@ addrs_t mappingInit(uint32_t addrs, uint32_t cant_reg) {
     addrs_t fpga_addr =
         mmap(NULL, cant_reg * sizeof(int32_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, addrs);
     if (fpga_addr == MAP_FAILED) {
-        log_add("[ERROR]]Error al mapear los regisros de FPGA.");
+        log_add("[ERROR]Error al mapear los registros de la FPGA.");
         close(fd);
         exit(EXIT_FAILURE);
     }
@@ -70,7 +68,9 @@ void mappingFinalize(addrs_t addr) {
         for (int i = 0; i < CANTIDAD; i++) {
             if ((mapping[i].ocupado) && (mapping[i].addr == addr)) {
                 munmap((void *)addr, mapping[i].size_reg * sizeof(int32_t));
-                mapping[i] = {0};
+                mapping[i].addr     = (addrs_t)NULL;
+                mapping[i].size_reg = 0;
+                mapping[i].ocupado  = false;
                 break;
             }
         }

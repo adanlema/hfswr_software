@@ -30,7 +30,7 @@
 #define PORT_SERVER 2011
 #define IP_SERVER   "0.0.0.0"
 /*==================[internal data declaration]==============================*/
-typedef struct {
+typedef struct bufferfpga_s {
     volatile uint32_t data[FPGA_REG];
 } * bufferfpga_t;
 
@@ -45,7 +45,7 @@ static struct registerctrl {
         struct {
             unsigned writeEn_1 : 1;
             unsigned writeEn_2 : 1;
-            unsigned 30;
+            unsigned : 30;
         };
     };
     volatile uint32_t lastAddr;
@@ -56,6 +56,9 @@ static struct registerctrl {
 
 static dataradar_t metadata = &(struct dataradar_s){0};
 server_t           server   = NULL;
+
+struct tm * sTm;
+time_t      now;
 /*==================[internal functions declaration]=========================*/
 static void mySignalHandler(int sig);
 /*==================[internal data definition]===============================*/
@@ -76,25 +79,26 @@ static void mySignalHandler(int sig) {
 
 static void sendData(server_t sv, addrs_t data) {
     char   buff[20];
-    size_t block_size = ctrl_regs->lastAddr != -1 ? ctrl_regs->lastAddr : sizeof(*bufferfpga_t);
+    size_t block_size =
+        ctrl_regs->lastAddr != -1 ? ctrl_regs->lastAddr : sizeof(struct bufferfpga_s);
 
     now = time(0);
     sTm = gmtime(&now);
     strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", sTm);
 
     strcpy(metadata->pulse_time, buff);
-    metada->size_data = block_size;
-    metada->lost_data = ctrl_regs->lostData;
+    metadata->size_data = block_size;
+    metadata->lost_data = ctrl_regs->lostData;
 
-    serverSend(sv, metadata, sizeof(*metadata));
-    serverSend(sv, data, block_size);
+    serverSend(sv, (char *)metadata, sizeof(*metadata));
+    serverSend(sv, (char *)data, block_size);
 }
 static void dataManagement(server_t sv) {
     uint32_t buff_leido = -1;
     int      i          = 0;
 
     log_add("Enviando datos...");
-    while (i < 5) {
+    while (true) {
         if (buff_leido != ctrl_regs->bufferToRead) {
             switch (ctrl_regs->bufferToRead) {
                 case 1:
@@ -104,7 +108,7 @@ static void dataManagement(server_t sv) {
                     ctrl_regs->writeEn_1 = 1;
                     i++;
                     break;
-                case 1:
+                case 2:
                     buff_leido           = 2;
                     ctrl_regs->writeEn_2 = 0;
                     sendData(sv, addr_buff_2->data);
@@ -121,8 +125,6 @@ static void dataManagement(server_t sv) {
 
 /*==================[external functions definition]==========================*/
 int main() {
-    int                n;
-    struct sockaddr_in client;
 
     log_delete();
 
@@ -167,7 +169,7 @@ int main() {
     ctrl_regs->phaseCarrier = 0x14d5555c; // FC=10MHz
     ctrl_regs->addrReset    = 0;
     ctrl_regs->writeEn      = 3;
-    ctrl_reg->start         = 1;
+    ctrl_regs->start        = 1;
     log_add("Valores inicializados");
 
     while (1) {
