@@ -19,8 +19,13 @@
 #include "al_mapping.h"
 #include "log_manager.h"
 /*==================[macros and definitions]=================================*/
-#define OFFSETPHASE 0
-#define OFFSETSTART 6
+#define OFFSETPHASE         0
+#define OFFSETRESET         1
+#define OFFSETWRITEEN       2
+#define OFFSETLASTADDR      3
+#define OFFSETBUFFERTOREADY 4
+#define OFFSETLOSTDATA      5
+#define OFFSETSTART         6
 
 #define DEFAULT_FREQ  10000000
 #define DEFAULT_START 0
@@ -89,9 +94,11 @@ void paramsSetConfig(addrs_t mem_p, params_t config) {
     uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
 
     /* Escritura y liberacion del bloque */
-    mem_p[OFFSETSTART] = 0;
-    mem_p[OFFSETPHASE] = phase_value;
-    mem_p[OFFSETSTART] = config->start;
+    mem_p[OFFSETSTART]   = 0;
+    mem_p[OFFSETPHASE]   = phase_value;
+    mem_p[OFFSETRESET]   = 0;
+    mem_p[OFFSETWRITEEN] = 3;
+    mem_p[OFFSETSTART]   = config->start;
 }
 
 void paramsSaveConfig(params_t params) {

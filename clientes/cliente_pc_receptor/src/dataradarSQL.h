@@ -10,7 +10,7 @@
 #include "metadata.h"
 #include "sqlite3.h"
 /*==================[macros]=================================================*/
-#define DATATYPE_SIZE 50
+
 /*==================[typedef]================================================*/
 typedef sqlite3 * datadb_t;
 

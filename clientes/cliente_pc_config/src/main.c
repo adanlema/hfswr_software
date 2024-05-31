@@ -15,14 +15,10 @@
 #define IP_LOCAL    "127.0.0.1"
 #define BUFTCP_SIZE 1024
 
-#define PORT_TX  2003
-#define PORT_RX1 2011
-#define PORT_RX2 2027
-#define PORT_RX3 2039
-#define PORT_RX4 2063
-#define PORT_RX5 2081
-#define PORT_RX6 2087
-#define PORT_RX7 2099
+#define PORT_TX   2003
+#define PORT_RX1C 2027
+#define PORT_RX2C 2063
+#define PORT_RX3C 2087
 
 /*==================[internal data declaration]==============================*/
 static uint32_t freq_rx = {0};
@@ -98,7 +94,7 @@ int main() {
     int eleccion, eleccion2;
 
     client_t client_tx  = clientCreate(PORT_TX, IP_LOCAL);
-    client_t client_rx1 = clientCreate(PORT_RX1, IP_LOCAL);
+    client_t client_rx1 = clientCreate(PORT_RX1C, IP_LOCAL);
 
     params_t params_tx = paramsCreate();
 

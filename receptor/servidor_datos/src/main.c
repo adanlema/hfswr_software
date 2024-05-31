@@ -164,7 +164,7 @@ int main() {
     signal(SIGTERM, mySignalHandler);
     signal(SIGKILL, mySignalHandler);
 
-    // Valores iniciales
+    // Borrar todo esto si primero corremos el receptor servidor cfg
     ctrl_regs->start        = 0;
     ctrl_regs->phaseCarrier = 0x14d5555c; // FC=10MHz
     ctrl_regs->addrReset    = 0;

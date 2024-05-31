@@ -104,10 +104,9 @@ int clientGetPort(client_t client) {
     return client->port;
 }
 
-void clientRecive(client_t client, char * buffer, uint32_t size) {
+int clientRecive(client_t client, char * buffer, uint32_t size) {
     memset(buffer, 0, size);
-    recv(client->sock, buffer, size, 0);
-    printf("\n[server] %s", buffer);
+    return recv(client->sock, buffer, size, 0);
 }
 void clientSend(client_t client, char * buffer, uint32_t size) {
     send(client->sock, buffer, size, 0);
