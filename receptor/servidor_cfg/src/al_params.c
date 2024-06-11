@@ -90,17 +90,6 @@ int paramsStrtoJson(char * str, params_t params) {
     }
 }
 
-void paramsSetConfig(addrs_t mem_p, params_t config) {
-    uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
-
-    /* Escritura y liberacion del bloque */
-    mem_p[OFFSETSTART]   = 0;
-    mem_p[OFFSETPHASE]   = phase_value;
-    mem_p[OFFSETRESET]   = 0;
-    mem_p[OFFSETWRITEEN] = 3;
-    mem_p[OFFSETSTART]   = config->start;
-}
-
 void paramsSaveConfig(params_t params) {
     FILE * file = fopen(FILE_TXT, "w");
     if (file == NULL) {

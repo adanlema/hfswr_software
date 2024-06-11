@@ -11,7 +11,6 @@
 /*==================[macros]=================================================*/
 
 /*==================[typedef]================================================*/
-// typedef struct params_s * params_t;
 typedef struct params_s {
     uint32_t freq;
     uint32_t start;
@@ -20,7 +19,6 @@ typedef struct params_s {
 
 /*==================[external functions declaration]=========================*/
 int      paramsStrtoJson(char * str, params_t params);
-void     paramsSetConfig(addrs_t mem_p, params_t config);
 void     paramsSaveConfig(params_t params);
 params_t paramsCreate();
 

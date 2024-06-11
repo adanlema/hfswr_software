@@ -6,8 +6,6 @@
 /*==================[inclusions]=============================================*/
 #include <stdint.h>
 #include <stdio.h>
-
-#include "al_mapping.h"
 /*==================[macros]=================================================*/
 #define DEFAULT_AB       5000
 #define DEFAULT_CODE     1810
@@ -29,9 +27,7 @@ typedef struct params_s {
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-
 int      paramsStrtoJson(char * str, params_t params);
-void     paramsSetConfig(addrs_t mem_p, params_t config);
 void     paramsSaveConfig(params_t params);
 params_t paramsCreate();
 

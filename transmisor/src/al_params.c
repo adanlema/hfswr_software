@@ -16,7 +16,6 @@
 #include <json-c/json.h>
 
 #include "al_params.h"
-#include "al_mapping.h"
 #include "log_manager.h"
 /*==================[macros and definitions]=================================*/
 
@@ -109,24 +108,6 @@ int paramsStrtoJson(char * str, params_t params) {
     } else {
         return -1;
     }
-}
-
-void paramsSetConfig(addrs_t mem_p, params_t config) {
-    /*  Variables por defecto */
-    uint32_t prt_value   = ceil(122880000 / config->prf);
-    uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
-    uint32_t tb          = ceil(122880000 / config->ab);
-    uint32_t t_value     = ceil(config->code_num * tb);
-
-    /* Escritura y liberacion del bloque */
-    mem_p[OFFSET_START]  = 0;
-    mem_p[OFFSET_PHASE]  = phase_value;
-    mem_p[OFFSET_PERIOD] = t_value;
-    mem_p[OFFSET_PRT]    = prt_value;
-    mem_p[OFFSET_CODE]   = config->code;
-    mem_p[OFFSET_NUMDIG] = config->code_num;
-    mem_p[OFFSET_TB]     = tb;
-    mem_p[OFFSET_START]  = config->start;
 }
 
 void paramsSaveConfig(params_t params) {

@@ -13,6 +13,7 @@
 #include "al_server.h"
 #include "al_params.h"
 #include "log_manager.h"
+#include "fpga_redpitaya.h"
 /*==================[macros and definitions]=================================*/
 #define EXT_ERR_CREATE_SERVER  1
 #define EXT_ERR_CLIENT_CONNECT 2
@@ -20,20 +21,36 @@
 
 #define PORT_SERVER 2003
 #define IP_SERVER   "0.0.0.0"
-
 #define BUFTCP_SIZE 1024
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
-void MySignalHandler(int sig);
-void manejo_datos(server_t sv, params_t params, addrs_t addr_fpga);
+void        MySignalHandler(int sig);
+static void setConfigTx(fpgatx_t mem, params_t config);
+static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx);
 /*==================[internal data definition]===============================*/
-addrs_t  addr_fpga = NULL;
-server_t server    = NULL;
+static server_t server = NULL;
+static fpgatx_t fpgatx = NULL;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
-void manejo_datos(server_t sv, params_t params, addrs_t addr) {
+static void setConfigTx(fpgatx_t mem, params_t config) {
+    uint32_t prt_value   = ceil(122880000 / config->prf);
+    uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
+    uint32_t tb          = ceil(122880000 / config->ab);
+    uint32_t t_value     = ceil(config->code_num * tb);
+
+    mem->start  = 0;
+    mem->phase  = phase_value;
+    mem->period = t_value;
+    mem->prt    = prt_value;
+    mem->code   = config->code;
+    mem->numdig = config->code_num;
+    mem->tb     = tb;
+    mem->start  = config->start;
+}
+
+static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
     char *r_buff, *s_buff;
     r_buff = malloc(BUFTCP_SIZE);
     s_buff = malloc(BUFTCP_SIZE);
@@ -61,7 +78,7 @@ void manejo_datos(server_t sv, params_t params, addrs_t addr) {
                 strcpy(s_buff, "{\"error\":\"Formato JSON no identificado\"}\n");
                 serverSend(server, s_buff, BUFTCP_SIZE);
             } else {
-                paramsSetConfig(addr, params);
+                setConfigTx(addrtx, params);
                 paramsSaveConfig(params);
                 memset(s_buff, 0, BUFTCP_SIZE);
                 strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
@@ -88,12 +105,12 @@ int main() {
     log_delete();
 
     // Mapeo de memoria...
-    addr_fpga = mappingInit(FPGA_ADDRS, FPGA_REG);
-    if (addr_fpga == NULL) {
+    fpgatx = (fpgatx_t)mappingInit(FPGATX_ADDR, FPGATX_REGS);
+    if (fpgatx == NULL) {
         return -1;
     }
     params_t params = paramsCreate();
-    paramsSetConfig(addr_fpga, params);
+    setConfigTx(fpgatx, params);
 
     // Creacion del server...
     server = serverCreate(PORT_SERVER, IP_SERVER);
@@ -120,18 +137,17 @@ int main() {
         if (serverAccept(server) != 0) {
             continue;
         }
-        manejo_datos(server, params, addr_fpga);
+        dataManagement(server, params, fpgatx);
         serverCloseClient(server);
     }
-
-    mappingFinalize(addr_fpga, FPGA_REG);
+    mappingFinalize((addrs_t)fpgatx);
     serverDisconnect(server);
     return 0;
 }
 
 void MySignalHandler(int sig) {
     log_add("[-]Cerrando el programa");
-    mappingFinalize(addr_fpga, FPGA_REG);
+    mappingFinalize((addrs_t)fpgatx);
     serverCloseClient(server);
     serverDisconnect(server);
     log_add("[SUCCESS]Programa cerrado con exito");
