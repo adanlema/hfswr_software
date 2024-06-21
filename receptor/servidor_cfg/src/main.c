@@ -26,6 +26,7 @@
 
 /*==================[internal functions declaration]=========================*/
 static void MySignalHandler(int sig);
+static void initConfigRx(fpgarx_t mem, params_t config);
 static void setConfigRx(fpgarx_t mem, params_t config);
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem);
 /*==================[internal data definition]===============================*/
@@ -34,13 +35,19 @@ static server_t server = NULL;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
+static void initConfigRx(fpgarx_t mem, params_t config) {
+    uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
+    mem->start           = 0;
+    mem->phaseCarrier    = phase_value;
+    mem->addrReset       = 0;
+    mem->writeEn         = 3;
+    mem->start           = config->start;
+}
 static void setConfigRx(fpgarx_t mem, params_t config) {
     uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
 
     mem->start        = 0;
     mem->phaseCarrier = phase_value;
-    mem->addrReset    = 0;
-    mem->writeEn      = 3;
     mem->start        = config->start;
 }
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem) {
@@ -106,7 +113,7 @@ int main() {
         return -1;
     }
     params_t params = paramsCreate();
-    setConfigRx(fpgarx, params);
+    initConfigRx(fpgarx, params);
 
     // Creacion del server...
     server = serverCreate(PORT_SERVER, IP_SERVER);

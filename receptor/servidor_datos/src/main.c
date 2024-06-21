@@ -12,55 +12,28 @@
 #include "al_mapping.h"
 #include "al_server.h"
 #include "log_manager.h"
-#include "metadata.h"
+#include "fpga_redpitaya.h"
 /*==================[macros and definitions]=================================*/
-
 #define EXT_ERR_CREATE_SERVER  1
 #define EXT_ERR_CLIENT_CONNECT 2
 #define EXT_ERR_LISTENING_SOCK 3
 
-#define FPGA_BUFF1        0x40000000
-#define FPGA_BUFF2        0x40004000
-#define FPGA_CTRL         0x40008000
-#define FPGA_REG          4096
-#define FPGA_MEM_CTRL_REG 6
-#define BUFFER_SIZE       FPGA_REG * sizeof(int32_t)
-#define FPGA_OFFSET_VALID 0
-
 #define PORT_SERVER 2011
 #define IP_SERVER   "0.0.0.0"
 /*==================[internal data declaration]==============================*/
-typedef struct bufferfpga_s {
-    volatile uint32_t data[FPGA_REG];
-} * bufferfpga_t;
-
-static bufferfpga_t addr_buff_1 = NULL;
-static bufferfpga_t addr_buff_2 = NULL;
-
-static struct registerctrl {
-    volatile uint32_t phaseCarrier;
-    volatile uint32_t addrReset;
-    volatile union {
-        uint32_t writeEn;
-        struct {
-            unsigned writeEn_1 : 1;
-            unsigned writeEn_2 : 1;
-            unsigned : 30;
-        };
-    };
-    volatile uint32_t lastAddr;
-    volatile uint32_t bufferToRead;
-    volatile uint32_t lostData;
-    volatile uint32_t start;
-} * ctrl_regs;
-
-static dataradar_t metadata = &(struct dataradar_s){0};
-server_t           server   = NULL;
+static fpgabuf_t  buff_1   = NULL;
+static fpgabuf_t  buff_2   = NULL;
+static fpgarx_t   fpgarx   = NULL;
+static server_t   server   = NULL;
+static metadata_t metadata = &(struct metadata_s){0};
 
 struct tm * sTm;
 time_t      now;
 /*==================[internal functions declaration]=========================*/
 static void mySignalHandler(int sig);
+static void initConfigRx(fpgarx_t mem);
+static void sendData(server_t sv, fpgarx_t mem, addrs_t buffer);
+static void dataManagement(server_t sv, fpgarx_t mem, fpgabuf_t buff1, fpgabuf_t buff2);
 /*==================[internal data definition]===============================*/
 
 /*==================[external data definition]===============================*/
@@ -68,19 +41,25 @@ static void mySignalHandler(int sig);
 /*==================[internal functions definition]==========================*/
 static void mySignalHandler(int sig) {
     log_add("[-]Cerrando el programa");
-    mappingFinalize((addrs_t)addr_buff_1);
-    mappingFinalize((addrs_t)addr_buff_2);
-    mappingFinalize((addrs_t)ctrl_regs);
+    mappingFinalize((addrs_t)buff_1);
+    mappingFinalize((addrs_t)buff_2);
+    mappingFinalize((addrs_t)fpgarx);
     serverCloseClient(server);
     serverDisconnect(server);
     log_add("[SUCCESS]Programa cerrado con exito");
     exit(EXIT_SUCCESS);
 }
-
-static void sendData(server_t sv, addrs_t data) {
+static void initConfigRx(fpgarx_t mem) {
+    mem->start        = 0;
+    mem->phaseCarrier = 0x14d5555c;
+    mem->addrReset    = 0;
+    mem->writeEn      = 3;
+    mem->start        = 1;
+    log_add("Valores inicializados");
+}
+static void sendData(server_t sv, fpgarx_t mem, addrs_t buffer) {
     char   buff[20];
-    size_t block_size =
-        ctrl_regs->lastAddr != -1 ? ctrl_regs->lastAddr : sizeof(struct bufferfpga_s);
+    size_t block_size = mem->lastAddr != -1 ? mem->lastAddr : sizeof(struct fpgabuf_s);
 
     now = time(0);
     sTm = gmtime(&now);
@@ -88,31 +67,31 @@ static void sendData(server_t sv, addrs_t data) {
 
     strcpy(metadata->pulse_time, buff);
     metadata->size_data = block_size;
-    metadata->lost_data = ctrl_regs->lostData;
+    metadata->lost_data = mem->lostData;
 
-    serverSend(sv, (char *)metadata, sizeof(*metadata));
-    serverSend(sv, (char *)data, block_size);
+    serverSend(sv, (char *)metadata, METADATA_BYTE);
+    serverSend(sv, (char *)buffer, block_size);
 }
-static void dataManagement(server_t sv) {
+static void dataManagement(server_t sv, fpgarx_t mem, fpgabuf_t buff1, fpgabuf_t buff2) {
     uint32_t buff_leido = -1;
     int      i          = 0;
 
     log_add("Enviando datos...");
-    while (true) {
-        if (buff_leido != ctrl_regs->bufferToRead) {
-            switch (ctrl_regs->bufferToRead) {
+    while (1) {
+        if (buff_leido != mem->bufferToRead) {
+            switch (mem->bufferToRead) {
                 case 1:
-                    buff_leido           = 1;
-                    ctrl_regs->writeEn_1 = 0;
-                    sendData(sv, addr_buff_1->data);
-                    ctrl_regs->writeEn_1 = 1;
+                    buff_leido     = 1;
+                    mem->writeEn_1 = 0;
+                    sendData(sv, mem, buff1->data);
+                    mem->writeEn_1 = 1;
                     i++;
                     break;
                 case 2:
-                    buff_leido           = 2;
-                    ctrl_regs->writeEn_2 = 0;
-                    sendData(sv, addr_buff_2->data);
-                    ctrl_regs->writeEn_2 = 1;
+                    buff_leido     = 2;
+                    mem->writeEn_2 = 0;
+                    sendData(sv, mem, buff2->data);
+                    mem->writeEn_2 = 1;
                     i++;
                     break;
                 default:
@@ -129,17 +108,16 @@ int main() {
     log_delete();
 
     // Mapeo de memoria...
-    addr_buff_1 = (bufferfpga_t)mappingInit(FPGA_BUFF1, FPGA_REG);
-    if (addr_buff_1 == NULL) {
+    buff_1 = (fpgabuf_t)mappingInit(FPGABF1_ADDR, FPGABF_REGS);
+    if (buff_1 == NULL) {
         return -1;
     }
-    addr_buff_2 = (bufferfpga_t)mappingInit(FPGA_BUFF2, FPGA_REG);
-    if (addr_buff_2 == NULL) {
+    buff_2 = (fpgabuf_t)mappingInit(FPGABF2_ADDR, FPGABF_REGS);
+    if (buff_2 == NULL) {
         return -1;
     }
-    ctrl_regs = (struct registerctrl *)mappingInit(FPGA_CTRL,
-                                                   sizeof(*ctrl_regs) / sizeof(*((addrs_t)NULL)));
-    if (ctrl_regs == NULL) {
+    fpgarx = (fpgarx_t)mappingInit(FPGARX_ADDR, FPGARX_REGS);
+    if (fpgarx == NULL) {
         return -1;
     }
     log_add("[SUCCESS]Mapeo de memoria realizo con exito");
@@ -164,19 +142,14 @@ int main() {
     signal(SIGTERM, mySignalHandler);
     signal(SIGKILL, mySignalHandler);
 
-    // Borrar todo esto si primero corremos el receptor servidor cfg
-    ctrl_regs->start        = 0;
-    ctrl_regs->phaseCarrier = 0x14d5555c; // FC=10MHz
-    ctrl_regs->addrReset    = 0;
-    ctrl_regs->writeEn      = 3;
-    ctrl_regs->start        = 1;
-    log_add("Valores inicializados");
+    // Borrar esta funcion si corremos primero el servidor cfg receptor
+    initConfigRx(fpgarx);
 
     while (1) {
         if (serverAccept(server) != 0) {
             continue;
         }
-        dataManagement(server);
+        dataManagement(server, fpgarx, buff_1, buff_2);
         serverCloseClient(server);
     }
 

@@ -14,6 +14,7 @@
 #define FPGABF2_ADDR 0x40004000
 #define FPGABF_REGS  4096
 
+#define DATATYPE_SIZE 50
 /*==================[typedef]================================================*/
 typedef struct fpgatx_s {
     volatile uint32_t start;
@@ -46,9 +47,25 @@ typedef struct fpgarx_s {
     volatile uint32_t start;
 } * fpgarx_t;
 
+typedef struct metadata_s {
+    int    fc;
+    int    fs;
+    int    size_data;
+    int    lost_data;
+    char   pulse_time[DATATYPE_SIZE];
+    char   origin[DATATYPE_SIZE];
+    char   format[DATATYPE_SIZE];
+    void * data;
+} * metadata_t;
+
 /*==================[external data declaration]==============================*/
 #define FPGATX_REGS sizeof(struct fpgatx_s) / sizeof(volatile uint32_t)
 #define FPGARX_REGS sizeof(struct fpgarx_s) / sizeof(volatile uint32_t)
+
+#define FPGATX_BYTE   sizeof(struct fpgatx_s)
+#define FPGARX_BYTE   sizeof(struct fpgarx_s)
+#define METADATA_BYTE sizeof(struct metadata_s)
+#define FPGABUF_BYTE  sizeof(struct fpgabuf_s)
 /*==================[external functions declaration]=========================*/
 
 /** @ doxygen end group definition */
