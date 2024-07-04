@@ -19,6 +19,7 @@
 #define EXT_ERR_CLIENT_CONNECT 2
 #define EXT_ERR_LISTENING_SOCK 3
 
+#define ID          "rx_rpf098f4"
 #define PORT_SERVER 2027
 #define IP_SERVER   "0.0.0.0"
 #define BUFTCP_SIZE 1024
@@ -28,7 +29,9 @@
 static void MySignalHandler(int sig);
 static void initConfigRx(fpgarx_t mem, params_t config);
 static void setConfigRx(fpgarx_t mem, params_t config);
+
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem);
+// static void dataManagement(server_t sv, params_t params);
 /*==================[internal data definition]===============================*/
 static fpgarx_t fpgarx = NULL;
 static server_t server = NULL;
@@ -50,6 +53,7 @@ static void setConfigRx(fpgarx_t mem, params_t config) {
     mem->phaseCarrier = phase_value;
     mem->start        = config->start;
 }
+// static void dataManagement(server_t sv, params_t params) {
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem) {
     char *r_buff, *s_buff;
     r_buff = malloc(BUFTCP_SIZE);
@@ -61,11 +65,7 @@ static void dataManagement(server_t sv, params_t params, fpgarx_t mem) {
     memset(r_buff, 0, BUFTCP_SIZE);
     memset(s_buff, 0, BUFTCP_SIZE);
 
-    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}");
-    serverSend(sv, s_buff, BUFTCP_SIZE);
-    memset(s_buff, 0, BUFTCP_SIZE);
-    sprintf(s_buff, "{\"freq\":%d, \"start\":%s}\n", params->freq,
-            params->start ? "true" : "false");
+    sprintf(s_buff, "{\"%s\"}", ID);
     serverSend(sv, s_buff, BUFTCP_SIZE);
 
     while (1) {
@@ -81,11 +81,11 @@ static void dataManagement(server_t sv, params_t params, fpgarx_t mem) {
                 memset(s_buff, 0, BUFTCP_SIZE);
                 strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
                 serverSend(server, s_buff, BUFTCP_SIZE);
+                memset(s_buff, 0, BUFTCP_SIZE);
+                sprintf(s_buff, "{\"freq\":%d, \"start\":%s}\n", params->freq,
+                        params->start ? "true" : "false");
+                serverSend(server, s_buff, BUFTCP_SIZE);
             }
-            memset(s_buff, 0, BUFTCP_SIZE);
-            sprintf(s_buff, "{\"freq\":%d, \"start\":%s}\n", params->freq,
-                    params->start ? "true" : "false");
-            serverSend(server, s_buff, BUFTCP_SIZE);
         } else {
             break;
         }
@@ -140,6 +140,7 @@ int main() {
         if (serverAccept(server) != 0) {
             continue;
         }
+        // dataManagement(server, params);
         dataManagement(server, params, fpgarx);
         serverCloseClient(server);
     }

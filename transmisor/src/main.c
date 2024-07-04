@@ -19,6 +19,7 @@
 #define EXT_ERR_CLIENT_CONNECT 2
 #define EXT_ERR_LISTENING_SOCK 3
 
+#define ID          "tx_rpf089d4"
 #define PORT_SERVER 2003
 #define IP_SERVER   "0.0.0.0"
 #define BUFTCP_SIZE 1024
@@ -27,7 +28,9 @@
 /*==================[internal functions declaration]=========================*/
 void        MySignalHandler(int sig);
 static void setConfigTx(fpgatx_t mem, params_t config);
+
 static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx);
+// static void dataManagement(server_t sv, params_t params);
 /*==================[internal data definition]===============================*/
 static server_t server = NULL;
 static fpgatx_t fpgatx = NULL;
@@ -49,7 +52,7 @@ static void setConfigTx(fpgatx_t mem, params_t config) {
     mem->tb     = tb;
     mem->start  = config->start;
 }
-
+// static void dataManagement(server_t sv, params_t params) {
 static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
     char *r_buff, *s_buff;
     r_buff = malloc(BUFTCP_SIZE);
@@ -61,7 +64,7 @@ static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
     memset(r_buff, 0, BUFTCP_SIZE);
     memset(s_buff, 0, BUFTCP_SIZE);
 
-    sprintf(s_buff, "{\"info\":\"Configuracion actual\"}");
+    sprintf(s_buff, "{\"%s\"}", ID);
     serverSend(sv, s_buff, BUFTCP_SIZE);
     memset(s_buff, 0, BUFTCP_SIZE);
     sprintf(s_buff,
@@ -83,14 +86,15 @@ static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
                 memset(s_buff, 0, BUFTCP_SIZE);
                 strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
                 serverSend(server, s_buff, BUFTCP_SIZE);
+
+                memset(s_buff, 0, BUFTCP_SIZE);
+                sprintf(s_buff,
+                        "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, "
+                        "\"start\":%s}\n",
+                        params->prf, params->freq, params->ab, params->code, params->code_num,
+                        params->start ? "true" : "false");
+                serverSend(server, s_buff, BUFTCP_SIZE);
             }
-            memset(s_buff, 0, BUFTCP_SIZE);
-            sprintf(s_buff,
-                    "{\"prf\":%d, \"freq\":%d, \"ab\":%d, \"code\":%d, \"code-num\":%d, "
-                    "\"start\":%s}\n",
-                    params->prf, params->freq, params->ab, params->code, params->code_num,
-                    params->start ? "true" : "false");
-            serverSend(server, s_buff, BUFTCP_SIZE);
 
         } else {
             break;
@@ -100,6 +104,14 @@ static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
     free(s_buff);
 }
 
+void MySignalHandler(int sig) {
+    log_add("[-]Cerrando el programa");
+    mappingFinalize((addrs_t)fpgatx);
+    serverCloseClient(server);
+    serverDisconnect(server);
+    log_add("[SUCCESS]Programa cerrado con exito");
+    exit(EXIT_SUCCESS);
+}
 /*==================[external functions definition]==========================*/
 int main() {
     log_delete();
@@ -137,6 +149,7 @@ int main() {
         if (serverAccept(server) != 0) {
             continue;
         }
+        // dataManagement(server, params);
         dataManagement(server, params, fpgatx);
         serverCloseClient(server);
     }
@@ -145,14 +158,6 @@ int main() {
     return 0;
 }
 
-void MySignalHandler(int sig) {
-    log_add("[-]Cerrando el programa");
-    mappingFinalize((addrs_t)fpgatx);
-    serverCloseClient(server);
-    serverDisconnect(server);
-    log_add("[SUCCESS]Programa cerrado con exito");
-    exit(EXIT_SUCCESS);
-}
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
