@@ -16,9 +16,7 @@
 #define BUFTCP_SIZE 1024
 
 #define PORT_TX   2003
-#define PORT_RX1C 2027
-#define PORT_RX2C 2063
-#define PORT_RX3C 2087
+#define PORT_RXC 2027
 
 /*==================[internal data declaration]==============================*/
 static uint32_t freq_rx = {0};
@@ -106,17 +104,15 @@ int main() {
     int eleccion, eleccion2;
 
     client_t client_tx  = clientCreate(PORT_TX, IP_LOCAL);
-    client_t client_rx1 = clientCreate(PORT_RX1C, IP_LOCAL);
+    client_t client_rx1 = clientCreate(PORT_RXC, IP_LOCAL);
 
     params_t params_tx = paramsCreate();
 
     while (1) {
         printf("\n\n Seleccione numericamente el comando que desea realizar:\n\
         [1] Configurar Transmisor\n\
-        [2] Encender/Apagar todos los receptores\n\
-        [3] Encender un receptor en particular\n\
-        [4] Apagar un receptor en particular\n\
-        [5] Salir\n\n-> ");
+        [2] Encender/Apagar el receptor\n\
+        [3] Salir\n\n-> ");
         scanf("%d", &eleccion);
         switch (eleccion) {
             case 1:
@@ -128,8 +124,8 @@ int main() {
                 break;
             case 2:
                 printf("\n      Que desea hacer:\n\
-                [1] Encender todos los receptores\n\
-                [2] Apagar todos los receptores\n-> ");
+                [1] Encender el receptor\n\
+                [2] Apagar el receptor\n-> ");
                 scanf("%d", &eleccion2);
                 switch (eleccion2) {
                     case 1:
@@ -143,12 +139,6 @@ int main() {
                 }
                 break;
             case 3:
-                printf("Completar proximamente...\n");
-                break;
-            case 4:
-                printf("Completar proximamente...\n");
-                break;
-            case 5:
                 printf("Saliendo del programa...\n\n");
                 return 0;
             default:

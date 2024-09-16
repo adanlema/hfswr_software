@@ -66,6 +66,7 @@ static void sendData(server_t sv, fpgarx_t mem, addrs_t buffer) {
     strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", sTm);
 
     strcpy(metadata->pulse_time, buff);
+    strcpy(metadata->format, "iq_16bit_packed");
     metadata->size_data = block_size;
     metadata->lost_data = mem->lostData;
 
@@ -108,19 +109,19 @@ int main() {
     log_delete();
 
     // Mapeo de memoria...
-    buff_1 = (fpgabuf_t)mappingInit(FPGABF1_ADDR, FPGABF_REGS);
-    if (buff_1 == NULL) {
-        return -1;
-    }
-    buff_2 = (fpgabuf_t)mappingInit(FPGABF2_ADDR, FPGABF_REGS);
-    if (buff_2 == NULL) {
-        return -1;
-    }
-    fpgarx = (fpgarx_t)mappingInit(FPGARX_ADDR, FPGARX_REGS);
-    if (fpgarx == NULL) {
-        return -1;
-    }
-    log_add("[SUCCESS]Mapeo de memoria realizo con exito");
+    // buff_1 = (fpgabuf_t)mappingInit(FPGABF1_ADDR, FPGABF_REGS);
+    // if (buff_1 == NULL) {
+    //     return -1;
+    // }
+    // buff_2 = (fpgabuf_t)mappingInit(FPGABF2_ADDR, FPGABF_REGS);
+    // if (buff_2 == NULL) {
+    //     return -1;
+    // }
+    // fpgarx = (fpgarx_t)mappingInit(FPGARX_ADDR, FPGARX_REGS);
+    // if (fpgarx == NULL) {
+    //     return -1;
+    // }
+    // log_add("[SUCCESS]Mapeo de memoria realizo con exito");
 
     // Creacion del server...
     server = serverCreate(PORT_SERVER, IP_SERVER);
@@ -143,13 +144,61 @@ int main() {
     signal(SIGKILL, mySignalHandler);
 
     // Borrar esta funcion si corremos primero el servidor cfg receptor
-    initConfigRx(fpgarx);
+    // initConfigRx(fpgarx);
 
-    while (1) {
+    uint32_t * data;
+    int        num_values = 113; // Número de valores en la lista
+    uint32_t   values[]   = {37, 37, 37, 36, 35, 35, 37, 37, 37, 37, 36, 36, 35, 34, 34, 33, 32,
+                             32, 31, 31, 32, 33, 33, 34, 35, 31, 31, 32, 33, 32, 36, 36, 37, 37,
+                             37, 36, 36, 37, 37, 36, 36, 31, 32, 32, 31, 31, 31, 31, 31, 32, 33,
+                             33, 34, 35, 36, 36, 37, 37, 37, 36, 36, 35, 35, 34, 33, 32, 32, 31,
+                             31, 31, 31, 31, 31, 32, 33, 33, 34, 35, 36, 36, 37, 37, 37, 37, 36,
+                             36, 35, 35, 34, 33, 32, 32, 31, 31, 31, 31, 31, 31, 32, 33, 33, 34,
+                             35, 36, 36, 37, 37, 37, 37, 36, 36, 35, 35, 34, 33, 32};
+
+    // Paso 2: Asignar memoria dinámica
+    data = (int *)malloc(num_values * sizeof(uint32_t));
+    if (data == NULL) {
+        perror("Failed to allocate memory");
+        return 1;
+    }
+
+    // Paso 3: Llenar el puntero con los valores
+    for (int i = 0; i < num_values; i++) {
+        data[i] = values[i];
+    }
+
+    // Paso 4: Abrir el archivo para escritura
+    FILE * file = fopen("datos.txt", "w");
+    if (file == NULL) {
+        perror("Failed to open file");
+        free(data);
+        return 1;
+    }
+    int bandera = 1;
+    while (bandera) {
         if (serverAccept(server) != 0) {
             continue;
         }
-        dataManagement(server, fpgarx, buff_1, buff_2);
+        char   buff[20];
+        size_t block_size = num_values * sizeof(uint32_t);
+
+        now = time(0);
+        sTm = gmtime(&now);
+        strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", sTm);
+
+        strcpy(metadata->pulse_time, buff);
+        strcpy(metadata->format, "iq_16bit_packed");
+        strcpy(metadata->origin, "rp-f098f4");
+        metadata->size_data = block_size;
+        metadata->lost_data = 0;
+        metadata->fc = 10000000;
+        metadata->fs = 120000;
+        metadata->lost_data = 0;
+        serverSend(server, (char *)metadata, METADATA_BYTE);
+        serverSend(server, (char *)data, block_size);
+        bandera = 0;
+        // dataManagiement(server, fpgarx, buff_1, buff_2);
         serverCloseClient(server);
     }
 

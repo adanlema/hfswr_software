@@ -14,9 +14,7 @@
 #define IP_LOCAL  "127.0.0.1"
 #define BUFF_SIZE 4096 * sizeof(uint32_t)
 
-#define PORT_RX1D 2011
-#define PORT_RX2D 2039
-#define PORT_RX3D 2081
+#define PORT_RX 2011
 
 #define FILE_PATH "src/rxdata.bin"
 #define FILE_DB   "radar_database.db"
@@ -57,7 +55,7 @@ int main() {
     data_file = fopen(FILE_PATH, "w");
     r_buff    = malloc(BUFF_SIZE);
 
-    rx1 = clientCreate(PORT_RX1D, IP_LOCAL);
+    rx1 = clientCreate(PORT_RX, IP_LOCAL);
     if (clientConnect(rx1) != 0) {
         return -1;
     }
@@ -68,7 +66,8 @@ int main() {
     signal(SIGTERM, signalHandler);
     signal(SIGKILL, signalHandler);
 
-    while (1) {
+    int bandera = 1;
+    while (bandera) {
         recive = clientRecive(rx1, r_buff, BUFF_SIZE);
         if (!(recive == 0 || recive == -1)) {
             fwrite(r_buff, 1, recive, data_file);
@@ -88,6 +87,7 @@ int main() {
                     printf("Error al almacenar los datos..\n");
                 }
             }
+            bandera = 0;
             // signalHandler(6);
         }
     }

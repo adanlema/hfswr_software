@@ -19,8 +19,9 @@
     "FC           INTEGER           NOT NULL, "                                                    \
     "FS           INTEGER           NOT NULL, "                                                    \
     "FORMAT       TEXT              NOT NULL, "                                                    \
-    "DATA         BLOB              NOT NULL)"
-
+    "DATA         BLOB              NOT NULL, "                                                    \
+    "DATA_SIZE    INTEGER           NOT NULL, "                                                    \
+    "LOST_DATA    INTEGER           NOT NULL)"                                                    
 /*==================[internal data declaration]==============================*/
 static datadb_t data_base = NULL;
 static char     text_sql[TEXTSQL_SIZE];
@@ -51,8 +52,8 @@ datadb_t datadbCreate(const char * filename) {
 
 int datadbStore(datadb_t db, metadata_t md) {
     sqlite3_stmt * stmt;
-    const char *   sql = "INSERT INTO data_radar (PULSE_TIME, ORIGIN, FC, FS, FORMAT, DATA) VALUES "
-                         "(?, ?, ?, ?, ?, ?)";
+    const char *   sql = "INSERT INTO data_radar (PULSE_TIME, ORIGIN, FC, FS, FORMAT, DATA, DATA_SIZE, LOST_DATA) VALUES "
+                         "(?, ?, ?, ?, ?, ?, ?, ?)";
 
     // Prepara la consulta SQL
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
@@ -60,12 +61,14 @@ int datadbStore(datadb_t db, metadata_t md) {
         printf("Error preparando la consulta: %s\n", sqlite3_errmsg(db));
         return -1;
     }
-    sqlite3_bind_text(stmt, 1, md->pulse_time, DATATYPE_SIZE, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, md->origin, DATATYPE_SIZE, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, md->pulse_time, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, md->origin, -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 3, md->fc);
     sqlite3_bind_int(stmt, 4, md->fs);
-    sqlite3_bind_text(stmt, 5, md->format, DATATYPE_SIZE, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 5, md->format, -1, SQLITE_TRANSIENT);
     sqlite3_bind_blob(stmt, 6, md->data, md->size_data, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 7, md->size_data);
+    sqlite3_bind_int(stmt, 8, md->lost_data);
 
     // Ejecuta la consulta
     rc = sqlite3_step(stmt);

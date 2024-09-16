@@ -1,9 +1,9 @@
 
-2024-07-04 16:01:15 [SUCCESS]TCP socket server creado con exito
-2024-07-04 16:01:15 [SUCCESS]TCP socket server creado con exito
-2024-07-04 16:01:15 [SUCCESS]Servidor creado con exito
-2024-07-04 16:01:15 [+]IP: 0.0.0.0
-2024-07-04 16:01:15 [+]Vinculado al puerto numero: 2003
-2024-07-04 16:01:44 [ERROR]Error al cerrar el archivo.
-2024-07-04 16:02:23 [ERROR]Error al cerrar el archivo.
-2024-07-04 16:02:48 [ERROR]Error al cerrar el archivo.
+2024-09-14 21:26:23 [SUCCESS]TCP socket server creado con exito
+2024-09-14 21:26:23 [SUCCESS]TCP socket server creado con exito
+2024-09-14 21:26:23 [SUCCESS]Servidor creado con exito
+2024-09-14 21:26:23 [+]IP: 0.0.0.0
+2024-09-14 21:26:23 [+]Vinculado al puerto numero: 2003
+2024-09-14 21:28:09 [-]Cerrando el programa
+2024-09-14 21:28:09 [SUCCESS]Servidor desconectado...
+2024-09-14 21:28:09 [SUCCESS]Programa cerrado con exito
