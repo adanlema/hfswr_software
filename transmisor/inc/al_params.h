@@ -15,7 +15,7 @@
 #define DEFAULT_START    0
 #define FILE_TXT         "src/config.txt"
 /*==================[typedef]================================================*/
-//! Estructura para guardar los parámetros del radar
+//! Estructura para guardar los parámetros del módulo transmisor
 typedef struct params_s {
     uint32_t prf;
     uint32_t ab;

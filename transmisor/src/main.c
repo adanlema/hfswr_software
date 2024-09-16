@@ -29,8 +29,8 @@
 void        MySignalHandler(int sig);
 static void setConfigTx(fpgatx_t mem, params_t config);
 
-// static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx);
-static void dataManagement(server_t sv, params_t params);
+static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx);
+// static void dataManagement(server_t sv, params_t params);
 /*==================[internal data definition]===============================*/
 static server_t server = NULL;
 static fpgatx_t fpgatx = NULL;
@@ -52,8 +52,8 @@ static void setConfigTx(fpgatx_t mem, params_t config) {
     mem->tb     = tb;
     mem->start  = config->start;
 }
-static void dataManagement(server_t sv, params_t params) {
-// static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
+// static void dataManagement(server_t sv, params_t params) {
+static void dataManagement(server_t sv, params_t params, fpgatx_t addrtx) {
     char *r_buff, *s_buff;
     r_buff = malloc(BUFTCP_SIZE);
     s_buff = malloc(BUFTCP_SIZE);
@@ -81,7 +81,7 @@ static void dataManagement(server_t sv, params_t params) {
                 strcpy(s_buff, "{\"error\":\"Formato JSON no identificado\"}\n");
                 serverSend(server, s_buff, BUFTCP_SIZE);
             } else {
-                // setConfigTx(addrtx, params);
+                setConfigTx(addrtx, params);
                 paramsSaveConfig(params);
                 memset(s_buff, 0, BUFTCP_SIZE);
                 strcpy(s_buff, "{\"info\":\"Configuracion cargada con exito\"}");
@@ -106,7 +106,7 @@ static void dataManagement(server_t sv, params_t params) {
 
 void MySignalHandler(int sig) {
     log_add("[-]Cerrando el programa");
-    // mappingFinalize((addrs_t)fpgatx);
+    mappingFinalize((addrs_t)fpgatx);
     serverCloseClient(server);
     serverDisconnect(server);
     log_add("[SUCCESS]Programa cerrado con exito");
@@ -117,14 +117,14 @@ int main() {
     log_delete();
 
     // Mapeo de memoria...
-    // fpgatx = (fpgatx_t)mappingInit(FPGATX_ADDR, FPGATX_REGS);
-    // if (fpgatx == NULL) {
-    //     return -1;
-    // }
+    fpgatx = (fpgatx_t)mappingInit(FPGATX_ADDR, FPGATX_REGS);
+    if (fpgatx == NULL) {
+        return -1;
+    }
     params_t params = paramsCreate();
-    // setConfigTx(fpgatx, params);
+    setConfigTx(fpgatx, params);
 
-    // Creacion del server...
+    // Creación del server...
     server = serverCreate(PORT_SERVER, IP_SERVER);
     if (server == NULL) {
         log_add("[ERROR]Error al crear el server...");
@@ -149,11 +149,11 @@ int main() {
         if (serverAccept(server) != 0) {
             continue;
         }
-        dataManagement(server, params);
-        // dataManagement(server, params, fpgatx);
+        // dataManagement(server, params);
+        dataManagement(server, params, fpgatx);
         serverCloseClient(server);
     }
-    // mappingFinalize((addrs_t)fpgatx);
+    mappingFinalize((addrs_t)fpgatx);
     serverDisconnect(server);
     return 0;
 }

@@ -1,29 +1,32 @@
 /* Copyright 2024, Adan Lema <adanlema@hotmail.com> */
 
-#ifndef AL_SERVER_H
-#define AL_SERVER_H
+#ifndef LOG_DESCRIPTOR_H
+#define LOG_DESCRIPTOR_H
 
 /*==================[inclusions]=============================================*/
+
 #include <stdio.h>
-#include <stdint.h>
+
 /*==================[macros]=================================================*/
+//! Path del archivo .log
+#define LOG_PATH "./src/txsyslog.log"
 
 /*==================[typedef]================================================*/
-typedef struct server_s * server_t;
+
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
-server_t serverCreate(uint32_t port, char * ip);
-int      serverConnect(server_t server);
-void     serverDisconnect(server_t server);
-int      serverAccept(server_t server);
-void     serverCloseClient(server_t server);
-int      serverListen(server_t server, int n);
-void     serverSend(server_t server, char * buffer, uint32_t size);
-int      serverRecive(server_t server, char * buffer, uint32_t size);
-void     serverGetIP(server_t server, char * destino);
-int      serverGetPort(server_t server);
-int      serverGetSock(server_t server);
+/**
+ * @brief Log Adder
+ * Añade una cadena de texto al archivo log.
+ * @param str Puntero a la cadena de texto.
+ */
+void log_add(char * str);
+/**
+ * @brief Log Delete
+ * Elimina el archivo log.
+ */
+void log_delete();
 
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */

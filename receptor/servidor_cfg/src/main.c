@@ -26,10 +26,14 @@
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
+//! Función para salida de emergencia.
 static void MySignalHandler(int sig);
+//! Función para cargar la configuración inicial del módulo receptor.
 static void initConfigRx(fpgarx_t mem, params_t config);
+//! Función para cambiar la configuración del módulo receptor.
 static void setConfigRx(fpgarx_t mem, params_t config);
 
+//! Función para manejar el server de configuración del módulo receptor.
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem);
 // static void dataManagement(server_t sv, params_t params);
 /*==================[internal data definition]===============================*/
@@ -46,6 +50,7 @@ static void initConfigRx(fpgarx_t mem, params_t config) {
     mem->writeEn         = 3;
     mem->start           = config->start;
 }
+
 static void setConfigRx(fpgarx_t mem, params_t config) {
     uint32_t phase_value = ceil((config->freq * 1e9) / 28610229);
 
@@ -53,6 +58,7 @@ static void setConfigRx(fpgarx_t mem, params_t config) {
     mem->phaseCarrier = phase_value;
     mem->start        = config->start;
 }
+
 // static void dataManagement(server_t sv, params_t params) {
 static void dataManagement(server_t sv, params_t params, fpgarx_t mem) {
     char *r_buff, *s_buff;
@@ -115,7 +121,7 @@ int main() {
     params_t params = paramsCreate();
     initConfigRx(fpgarx, params);
 
-    // Creacion del server...
+    // Creación del server...
     server = serverCreate(PORT_SERVER, IP_SERVER);
     if (server == NULL) {
         log_add("[ERROR]Error al crear el server...");

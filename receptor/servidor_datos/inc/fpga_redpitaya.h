@@ -7,15 +7,22 @@
 #include <stdio.h>
 #include <stdint.h>
 /*==================[macros]=================================================*/
+//! Dirección de memoria de los registros de control del transmisor.
 #define FPGATX_ADDR 0x43C00000
+//! Dirección de memoria de los registros de control del receptor.
 #define FPGARX_ADDR 0x40008000
-
+//! Dirección de memoria del buffer 1 del receptor.
 #define FPGABF1_ADDR 0x40000000
+//! Dirección de memoria del buffer 2 del receptor.
 #define FPGABF2_ADDR 0x40004000
-#define FPGABF_REGS  4096
-
+//! Cantidad de registros de 32bits para cada buffer.
+#define FPGABF_REGS 4096
+//! Tamaño de los datos de las estructuras.
 #define DATATYPE_SIZE 50
+
 /*==================[typedef]================================================*/
+
+//! Estructura encargada del manejo de los registros de control del transmisor.
 typedef struct fpgatx_s {
     volatile uint32_t start;
     volatile uint32_t phase;
@@ -26,10 +33,12 @@ typedef struct fpgatx_s {
     volatile uint32_t tb;
 } * fpgatx_t;
 
+//! Estructura para el buffer de memoria del receptor.
 typedef struct fpgabuf_s {
     volatile uint32_t data[FPGABF_REGS];
 } * fpgabuf_t;
 
+//! Estructura encargada del manejo de los registros de control del receptor.
 typedef struct fpgarx_s {
     volatile uint32_t phaseCarrier;
     volatile uint32_t addrReset;
@@ -47,6 +56,7 @@ typedef struct fpgarx_s {
     volatile uint32_t start;
 } * fpgarx_t;
 
+//! Estructura que contiene los metadatos de los lote de datos.
 typedef struct metadata_s {
     int    fc;
     int    fs;
@@ -59,7 +69,9 @@ typedef struct metadata_s {
 } * metadata_t;
 
 /*==================[external data declaration]==============================*/
+//! Cantidad de registros para los registros de control del transmisor.
 #define FPGATX_REGS sizeof(struct fpgatx_s) / sizeof(volatile uint32_t)
+//! Cantidad de registros para los registros de control del receptor.
 #define FPGARX_REGS sizeof(struct fpgarx_s) / sizeof(volatile uint32_t)
 
 #define FPGATX_BYTE   sizeof(struct fpgatx_s)
