@@ -14,6 +14,7 @@
 #define BARKER13_CODE 0x1F35
 #define BARKER13_NUM  0xD
 /*==================[typedef]================================================*/
+//! Estructura para los parámetros del radar
 typedef struct params_s {
     uint32_t prf;
     uint32_t ab;
@@ -22,7 +23,7 @@ typedef struct params_s {
     uint32_t code_num;
     uint32_t start;
 } * params_t;
-
+//! Thread para manejar los módulos.
 typedef struct thread_args_s {
     int *    soc;
     params_t params;
@@ -33,9 +34,40 @@ typedef struct thread_args_s {
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
+/**
+ * @brief Parameters String To Json
+ * Almacena en la estructura un string con los parámetros 
+ * @param str       Puntero al string con los datos.
+ * @param params    Puntero a la estructura.
+ * @return int      Retorna un 0 si es correcto, -1 si fallo.
+ */
 int      paramsStrtoJson(char * str, params_t params);
+
+/**
+ * @brief Parameters Update
+ * Función que actualiza los parámetros de los módulos.
+ * @param str 
+ * @param params 
+ * @return int 
+ */
 int      paramsUpdate(char * str, params_t params);
+/**
+ * @brief Parameters Create
+ * Crea una estructura para los parámetros y devuelve el puntero de esta.
+ * @return params_t Puntero a la estructura.
+ */
 params_t paramsCreate();
+
+
+
+
+
+
+
+
+
+
+
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
 /** @ doxygen end group definition */
